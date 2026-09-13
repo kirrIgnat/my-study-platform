@@ -1,0 +1,60 @@
+{{define "study_nav"}}
+<header class="study-nav-shell">
+  <div class="study-nav">
+    <a class="study-brand" href="/study"><span class="study-brand-mark">K</span><span>KIRILL<strong>.STUDY</strong></span></a>
+    <nav class="study-tabs" aria-label="Разделы учебного центра">
+      <a {{if eq .Active "home"}}class="active"{{end}} href="/study">Обучение</a>
+      <a {{if eq .Active "booking"}}class="active"{{end}} href="/study/booking">Запись</a>
+      <a {{if eq .Active "courses"}}class="active"{{end}} href="/study/courses">Курсы</a>
+    </nav>
+    <div class="study-auth-actions">
+      <a class="portfolio-link" href="/profile">← Портфолио</a>
+      {{if .User}}
+        <a class="notification-action {{if eq .Active "notifications"}}active{{end}}" href="/study/notifications" aria-label="Уведомления" title="Уведомления">
+          <span class="notification-bell" aria-hidden="true">⌁</span><span class="notification-action-label">Уведомления</span>{{if gt .Unread 0}}<span class="notification-corner-badge">{{.Unread}}</span>{{end}}
+        </a>
+        <a class="user-chip user-chip-link" href="{{if eq .User.Role "admin"}}/study/admin{{else}}/study/account{{end}}"><span>{{.User.Name}}</span><small>{{if eq .User.Role "admin"}}admin{{else}}student{{end}}</small></a>
+        <form method="post" action="/study/logout"><input type="hidden" name="csrf_token" value="{{.CSRF}}"><button class="nav-action ghost" type="submit">Выйти</button></form>
+      {{else}}
+        <a class="nav-action ghost" href="/study/login">Войти</a><a class="nav-action primary" href="/study/register">Регистрация</a>
+      {{end}}
+    </div>
+  </div>
+</header>
+{{end}}
+
+{{define "cabinet_nav"}}
+<header class="cabinet-nav-shell">
+  <div class="cabinet-nav">
+    <div class="cabinet-nav-top">
+      <a class="cabinet-back" href="/study">← Учебный центр</a>
+      <a class="cabinet-brand" href="{{if eq .User.Role "admin"}}/study/admin{{else}}/study/account{{end}}"><span class="study-brand-mark">K</span><span>{{if eq .User.Role "admin"}}KIRILL<strong>.ADMIN</strong>{{else}}KIRILL<strong>.CABINET</strong>{{end}}</span></a>
+      <div class="cabinet-account-actions">
+        <a class="cabinet-notification-link {{if eq .CabinetTab "notifications"}}active{{end}}" href="/study/notifications" aria-label="Уведомления"><span>Уведомления</span>{{if gt .Unread 0}}<b>{{.Unread}}</b>{{end}}</a>
+        <div class="cabinet-user"><span>{{.User.Name}}</span><small>{{if eq .User.Role "admin"}}ADMIN{{else}}STUDENT{{end}}</small></div>
+        <form method="post" action="/study/logout"><input type="hidden" name="csrf_token" value="{{.CSRF}}"><button class="nav-action ghost" type="submit">Выйти</button></form>
+      </div>
+    </div>
+    <nav class="cabinet-tabs" aria-label="Разделы личного кабинета">
+      {{if eq .User.Role "admin"}}
+        <a {{if eq .CabinetTab "overview"}}class="active"{{end}} href="/study/admin?tab=overview">Обзор</a>
+        <a {{if eq .CabinetTab "schedule"}}class="active"{{end}} href="/study/admin?tab=schedule">Расписание</a>
+        <a {{if eq .CabinetTab "transfers"}}class="active"{{end}} href="/study/admin?tab=transfers">Переносы</a>
+        <a {{if eq .CabinetTab "students"}}class="active"{{end}} href="/study/admin?tab=students">Ученики</a>
+      {{else}}
+        <a {{if eq .CabinetTab "overview"}}class="active"{{end}} href="/study/account?tab=overview">Обзор</a>
+        <a {{if eq .CabinetTab "schedule"}}class="active"{{end}} href="/study/account?tab=schedule">Расписание</a>
+        <a {{if eq .CabinetTab "materials"}}class="active"{{end}} href="/study/account?tab=materials">Материалы</a>
+        <a {{if eq .CabinetTab "transfers"}}class="active"{{end}} href="/study/account?tab=transfers">Переносы</a>
+        <a {{if eq .CabinetTab "security"}}class="active"{{end}} href="/study/account?tab=security">Безопасность</a>
+      {{end}}
+      <a {{if eq .CabinetTab "notifications"}}class="active"{{end}} href="/study/notifications">Уведомления{{if gt .Unread 0}}<span class="cabinet-tab-badge">{{.Unread}}</span>{{end}}</a>
+    </nav>
+  </div>
+</header>
+{{end}}
+
+{{define "study_footer"}}
+<footer class="study-footer"><span>© 2026 KIRILL.STUDY</span><span>C / C++ / GO / LINUX</span></footer>
+<script src="/static/js/study_ui.js?v=20260913-4"></script>
+{{end}}

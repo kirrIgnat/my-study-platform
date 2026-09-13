@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+</head>
+<body class="study-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "study_nav" .}}
+  <main class="study-main narrow-top booking-page">
+    <section class="page-title split-title">
+      <div><span class="study-kicker">ПЕРСОНАЛЬНОЕ ОБУЧЕНИЕ</span><h1>Соберите своё недельное расписание</h1><p>Каждый выбранный слот закрепляется за вами еженедельно. Можно выбрать одно, два или больше занятий в неделю — если в расписании есть свободное время.</p></div>
+      <div class="timezone-chip" id="bookingTimezoneLabel">часовой пояс загружается…</div>
+    </section>
+
+    <aside class="frequency-guidance"><span>О ТЕМПЕ</span><p><strong>2 занятия в неделю обычно эффективнее</strong> — меньше пауз и проще держать практику. Если выбираете <strong>1 занятие в неделю</strong>, такой формат предполагает больше самостоятельной работы между встречами.</p></aside>
+
+    {{if and .User (eq .User.Role "student") .StudentSchedules}}
+    <section class="study-panel current-schedules-panel">
+      <div class="panel-head"><div><span class="panel-label">ВАШИ ПОСТОЯННЫЕ ЗАНЯТИЯ</span><h2>Сейчас закреплено: {{len .StudentSchedules}} в неделю</h2></div><a class="table-action" href="/study/account?tab=schedule">Открыть календарь →</a></div>
+      <div class="recurring-schedule-chips">{{range .StudentSchedules}}<div class="recurring-schedule-chip"><span>{{.WeekdayName}}</span><b>{{.Time}}</b><small>{{if .Topic}}{{.Topic}}{{else}}Персональное занятие{{end}}</small></div>{{end}}</div>
+      <p class="panel-note">Ниже можно добавить ещё один свободный еженедельный слот. Уже закреплённые времена повторно выбрать нельзя.</p>
+    </section>
+    {{end}}
+
+    <section class="booking-workspace">
+      <article class="study-panel calendar-card">
+        <div class="panel-head"><div><span class="panel-step">01</span><h2 id="calendarTitle">Первое занятие нового слота</h2></div><div class="calendar-nav"><button id="calendarPrev" type="button" aria-label="Предыдущий месяц">←</button><button id="calendarNext" type="button" aria-label="Следующий месяц">→</button></div></div>
+        <div class="calendar-weekdays"><span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span></div>
+        <div class="calendar-grid" id="calendarGrid"></div><p class="calendar-hint" id="calendarHint">Загружаю свободные постоянные слоты…</p>
+      </article>
+      <article class="study-panel slots-card"><div class="panel-head"><div><span class="panel-step">02</span><h2 id="slotsTitle">Выберите дату</h2></div></div><div class="slot-list" id="slotList"><div class="booking-empty">После выбора даты здесь появятся свободные слоты.</div></div></article>
+      <article class="study-panel booking-confirm-card">
+        <div class="panel-head"><div><span class="panel-step">03</span><h2>Добавить в расписание</h2></div><div class="booking-selection" id="bookingSelection">Дата и время не выбраны</div></div>
+        {{if .User}}
+          {{if eq .User.Role "student"}}
+          <div class="booking-profile"><div class="avatar">{{printf "%.1s" .User.Name}}</div><div><b>{{.User.Name}}</b><span>{{.User.Email}}{{if .User.Telegram}} · {{.User.Telegram}}{{end}}</span></div></div>
+          <form class="study-form compact" id="bookingForm">
+            <label><span>Что хотите изучать <small>необязательно</small></span><textarea id="bookingTopic" maxlength="1000" rows="4" placeholder="Например: C++, Go, Linux, подготовка к собеседованию…"></textarea></label>
+            <button class="study-button primary wide" id="bookingSubmit" type="submit" disabled>Добавить еженедельное занятие</button><p class="booking-status" id="bookingStatus" role="status">Выбранный день недели и время будут повторяться каждую неделю.</p>
+          </form>
+          {{else}}<div class="booking-empty">Вы вошли как администратор. Для записи используйте аккаунт студента.</div>{{end}}
+        {{else}}
+          <div class="auth-gate"><span class="lock-mark">↳</span><h3>Нужен аккаунт студента</h3><p>После входа можно закрепить один или несколько еженедельных слотов.</p><div><a class="study-button primary" href="/study/login">Войти</a><a class="study-button secondary" href="/study/register">Регистрация</a></div></div>
+        {{end}}
+      </article>
+    </section>
+  </main>{{template "study_footer" .}}
+  <script src="/static/js/study_booking.js?v=20260913-4"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="description" content="Курсы KIRILL.STUDY готовятся к запуску. Пока доступна запись на индивидуальные онлайн-занятия.">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+</head>
+<body class="study-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "study_nav" .}}
+  <main class="study-main coming-main">
+    <section class="coming-shell">
+      <div class="coming-code" aria-hidden="true">
+        <span>01</span><code>package courses</code>
+        <span>02</span><code></code>
+        <span>03</span><code><b>func</b> Launch() Status {</code>
+        <span>04</span><code>&nbsp;&nbsp;return <em>ComingSoon</em></code>
+        <span>05</span><code>}</code>
+      </div>
+      <div class="coming-copy">
+        <span class="study-kicker">COURSES / COMING SOON</span>
+        <h1>Курсы<br><em>скоро.</em></h1>
+        <p>Сейчас я готовлю полноценные программы с практикой, материалами и прогрессом в личном кабинете. Пока доступен основной формат — индивидуальные онлайн-занятия.</p>
+        <div class="coming-actions">
+          <a class="study-button primary" href="/study/booking">Записаться на занятие</a>
+          {{if .User}}
+            {{if eq .User.Role "admin"}}<a class="study-button secondary" href="/study/admin">В админку</a>{{else}}<a class="study-button secondary" href="/study/account">В кабинет</a>{{end}}
+          {{else}}
+            <a class="study-button secondary" href="/study/register">Создать аккаунт</a>
+          {{end}}
+        </div>
+      </div>
+      <div class="coming-status">
+        <span class="pulse-dot"></span>
+        <div><b>В разработке</b><small>C · C++ · Go · Linux</small></div>
+      </div>
+    </section>
+  </main>{{template "study_footer" .}}
+</body>
+</html>

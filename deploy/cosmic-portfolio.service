@@ -1,0 +1,32 @@
+[Unit]
+Description=Cosmic Portfolio and KIRILL.STUDY Go application
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=cosmic
+Group=cosmic
+WorkingDirectory=/opt/cosmic-portfolio
+ExecStart=/opt/cosmic-portfolio/cosmic-portfolio
+Environment=PORT=3000
+Environment=APP_ENV=production
+Environment=COOKIE_SECURE=true
+EnvironmentFile=/etc/cosmic-portfolio.env
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+ReadOnlyPaths=/opt/cosmic-portfolio
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

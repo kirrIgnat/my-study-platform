@@ -1,0 +1,19 @@
+# Compiled binary
+cosmic-portfolio
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Backups
+*.sql
+*.dump
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/

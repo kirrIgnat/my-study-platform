@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+</head>
+<body class="study-body auth-page">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "study_nav" .}}
+  <main class="auth-main">
+    <section class="auth-copy"><span class="study-kicker">ЛИЧНЫЙ КАБИНЕТ</span><h1>Продолжить<br><em>обучение.</em></h1><p>Войдите, чтобы управлять занятиями и своей историей обучения.</p><div class="auth-feature"><b>Серверная сессия</b><span>Пароль не хранится в открытом виде, cookie закрыта от JavaScript.</span></div></section>
+    <section class="auth-card">
+      <div class="auth-switch"><a class="active" href="/study/login">Вход</a><a href="/study/register">Регистрация</a></div>
+      <div class="auth-card-head"><h2>С возвращением</h2><p>Используйте email и пароль от аккаунта.</p></div>
+      {{if .Error}}<div class="form-alert error">{{.Error}}</div>{{end}}
+      <form class="study-form" method="post" action="/study/login">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+        <label><span>Email</span><input type="email" name="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label><span>Пароль</span><span class="password-input-wrap"><input type="password" name="password" autocomplete="current-password" minlength="8" maxlength="128" required placeholder="••••••••"><button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль">Показать</button></span></label>
+        <button class="study-button primary wide" type="submit">Войти в кабинет</button>
+      </form>
+      <p class="auth-bottom">Нет аккаунта? <a href="/study/register">Создать бесплатно</a></p>
+    </section>
+  </main>{{template "study_footer" .}}
+</body>
+</html>

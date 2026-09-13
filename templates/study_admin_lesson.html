@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+</head>
+<body class="study-body admin-body cabinet-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+  <main class="study-main cabinet-main lesson-cabinet-main">
+    <section class="page-title lesson-admin-title"><div><a class="back-link" href="/study/admin?tab=schedule">← Все занятия</a><span class="study-kicker">УРОК · {{.Lesson.Date}} · {{.Lesson.Time}}</span><h1>{{.Lesson.UserName}}</h1><p>{{.Lesson.UserEmail}}{{if .Lesson.Topic}} · {{.Lesson.Topic}}{{end}}</p></div><span class="status-pill {{.Lesson.Status}}">{{.Lesson.Status}}</span></section>
+
+    {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}
+    {{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
+    <section class="lesson-admin-grid">
+      <article class="study-panel">
+        <div class="panel-head"><div><span class="panel-label">ДО ЗАНЯТИЯ</span><h2>Статус и конференция</h2></div></div>
+        <form class="study-form" method="post" action="/study/admin/booking/update">
+          <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}">
+          <label><span>Статус</span><select name="status"><option value="pending" {{if eq .Lesson.Status "pending"}}selected{{end}}>Ожидает подтверждения</option><option value="confirmed" {{if eq .Lesson.Status "confirmed"}}selected{{end}}>Подтверждено</option><option value="done" {{if eq .Lesson.Status "done"}}selected{{end}}>Проведено</option><option value="cancelled" {{if eq .Lesson.Status "cancelled"}}selected{{end}}>Отменено</option></select></label>
+          <label><span>Ссылка на конференцию</span><input type="url" name="meeting_url" maxlength="2048" value="{{.Lesson.MeetingURL}}" placeholder="https://meet.google.com/..." autocomplete="off"><small>После сохранения ссылка сразу появится в кабинете ученика.</small></label>
+          <button class="study-button secondary wide" type="submit">Сохранить расписание</button>
+        </form>
+      </article>
+
+      <article class="study-panel lesson-publish-panel">
+        <div class="panel-head"><div><span class="panel-label">ПОСЛЕ ЗАНЯТИЯ</span><h2>Материал и домашнее задание</h2></div>{{if .Lesson.Published}}<span class="status-pill done">опубликовано</span>{{else}}<span class="status-pill pending">черновик</span>{{end}}</div>
+        <form class="study-form" method="post" action="/study/admin/lesson/save">
+          <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}">
+          <label><span>Название урока</span><input type="text" name="title" maxlength="180" value="{{.Lesson.Title}}" placeholder="Например: Указатели и управление памятью"></label>
+          <label><span>Теория / конспект / полезные ссылки</span><textarea name="theory" rows="10" maxlength="30000" placeholder="Что разобрали на занятии, примеры, ссылки на документацию…">{{.Lesson.Theory}}</textarea></label>
+          <label><span>Домашнее задание</span><textarea name="homework" rows="7" maxlength="20000" placeholder="Задачи, требования, дедлайн, критерии…">{{.Lesson.Homework}}</textarea></label>
+          <label><span>Видео с занятия <small>необязательно</small></span><input type="url" name="video_url" maxlength="2048" value="{{.Lesson.VideoURL}}" placeholder="https://..."><small>Можно вставить ссылку на запись в облаке, YouTube unlisted, Яндекс Диск и т.п.</small></label>
+          <div class="lesson-form-actions"><button class="study-button secondary" type="submit" name="action" value="draft">Сохранить</button><button class="study-button primary" type="submit" name="action" value="publish">Опубликовать ученику</button></div>
+          <p class="panel-note">При публикации занятие автоматически получает статус <b>done</b>, а материал появляется в личном кабинете ученика.</p>
+        </form>
+      </article>
+    </section>
+  </main>{{template "study_footer" .}}
+</body>
+</html>

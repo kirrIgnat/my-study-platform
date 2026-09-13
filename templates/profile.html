@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{.Title}}</title>
+  <meta name="description" content="Кирилл Игнатьев — разработчик Go, C/C++, backend и системного ПО под Linux.">
+  <meta name="theme-color" content="#070a12">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="space"></div>
+
+  <header class="nav-wrap">
+    <a class="brand" href="/profile">KIRILL<span>.DEV</span></a>
+    <nav>
+      <a class="active" href="/profile">Профиль</a>
+      <a href="/projects">Проекты</a>
+      <a href="/study">Учёба</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <p class="eyebrow">ПРИВЕТ! МЕНЯ ЗОВУТ ИГНАТЬЕВ КИРИЛЛ</p>
+        <h1><span>HELLO WORLD</span></h1>
+        <p class="lead">Разработчик системного и backend-ПО. Люблю Linux, C++, C, Go и задачи, в которых хороший результат начинается с понятного инженерного решения.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="/study/booking">Записаться на занятие</a>
+          <a class="btn ghost" href="/projects">Мои проекты</a>
+        </div>
+      </div>
+
+      <div class="sky-card constellation-card reveal" id="constellationCard" aria-hidden="true">
+        <canvas id="constellationCanvas"></canvas>
+        <div class="constellation-caption">constellation / generated</div>
+      </div>
+    </section>
+
+    <section class="grid-section">
+      <article class="panel about reveal">
+        <p class="section-tag">01 / КРАТКО</p>
+        <h2>Разработка и учёба.</h2>
+        <p>Более трёх лет коммерческого опыта: backend, системное ПО под Linux, C/C++, Go и Python. Сейчас работаю ведущим инженером-разработчиком и параллельно учусь в Физтехе.</p>
+      </article>
+
+      <article class="panel stack reveal">
+        <p class="section-tag">02 / СТЕК</p>
+        <div class="chips">
+          <span>Go</span><span>C</span><span>C++</span><span>Python</span><span>Linux</span>
+          <span>Git</span><span>Bash</span><span>PostgreSQL</span><span>REST API</span>
+          <span>Docker</span><span>Kubernetes</span><span>DNS</span><span>LDAP</span>
+        </div>
+      </article>
+
+      <article class="panel experience reveal">
+        <p class="section-tag">03 / ОПЫТ</p>
+        <div class="timeline-item">
+          <span class="dot"></span>
+          <div><strong>Ведущий инженер-разработчик</strong><small>SberTech · 2026 — настоящее время</small><p>Статический анализ безопасности, triage уязвимостей, вспомогательные инструменты на Go и исправления в пакетах Linux-дистрибутивов.</p></div>
+        </div>
+        <div class="timeline-item">
+          <span class="dot"></span>
+          <div><strong>Программист-разработчик C/C++</strong><small>РЕД СОФТ · 2024 — настоящее время</small><p>Системное ПО под Linux на C, C++ и Go: новый функционал, legacy-код, тестирование, отладка и внутренняя автоматизация.</p></div>
+        </div>
+        <div class="timeline-item">
+          <span class="dot"></span>
+          <div><strong>Программист-разработчик</strong><small>СДЭК · 2023 — 2024</small><p>Backend, PostgreSQL, Linux, рефакторинг и автоматизация внутренних процессов.</p></div>
+        </div>
+      </article>
+
+      <article class="panel contact reveal">
+        <p class="section-tag">04 / КОНТАКТЫ</p>
+        <h2>Можно обсудить задачу.</h2>
+        <a href="mailto:kirr.ignat@gmail.com">kirr.ignat@gmail.com ↗</a>
+        <a href="https://t.me/kirill_ignat" target="_blank" rel="noreferrer">Telegram @kirill_ignat ↗</a>
+      </article>
+    </section>
+  </main>
+
+  <footer><span>© 2026 KIRILL.DEV</span><span>BACKEND / SYSTEMS / LINUX</span></footer>
+  <script src="/static/js/site.js"></script>
+</body>
+</html>

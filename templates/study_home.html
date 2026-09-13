@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{.Title}}</title>
+  <meta name="description" content="KIRILL.STUDY — индивидуальные онлайн-занятия по C, C++, Go, Linux и системному программированию.">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+</head>
+<body class="study-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>
+  {{template "study_nav" .}}
+  <main class="study-main">
+    <section class="study-hero">
+      <div class="study-hero-copy">
+        <span class="study-kicker">ИНЖЕНЕРНОЕ ОБУЧЕНИЕ · ONLINE</span>
+        <h1>Понимать систему,<br><em>а не запоминать код.</em></h1>
+        <p>Персональные онлайн-занятия по C, C++, Go и Linux. Системное мышление, backend, реальные задачи, разбор решений и понятная обратная связь.</p>
+        <div class="hero-buttons">
+          <a class="study-button primary" href="/study/booking">Закрепить время</a>
+          <a class="study-button secondary" href="/study/courses">Курсы — скоро</a>
+        </div>
+        <div class="hero-trust"><span><b>C / C++</b> systems</span><span><b>Go</b> backend</span><span><b>Linux</b> internals</span></div>
+      </div>
+      <aside class="study-terminal-card" data-code-rotator aria-label="Примеры кода на C, C++, Go, SQL и Python">
+        <div class="terminal-top">
+          <span></span><span></span><span></span>
+          <small data-code-filename>learning_path.go</small>
+        </div>
+        <div class="terminal-code-stage">
+          <div class="terminal-language" data-code-language>GO</div>
+          <pre><code data-code-output aria-live="polite"><span class="code-line"><b class="code-keyword">func</b> Learn(topic string) Result {</span>
+<span class="code-line">    theory := Understand(topic)</span>
+<span class="code-line">    practice := Build(theory)</span>
+<span class="code-line">    feedback := Review(practice)</span>
+<span class="code-line"> </span>
+<span class="code-line">    <b class="code-keyword">return</b> Iterate(feedback)</span>
+<span class="code-line">}</span></code></pre>
+        </div>
+        <div class="terminal-status"><span class="pulse-dot"></span><span>mentor online</span><span class="terminal-cycle">C · C++ · GO · SQL · PY</span></div>
+      </aside>
+    </section>
+
+    <section class="study-section">
+      <div class="section-heading"><div><span class="study-kicker">КУРСЫ</span><h2>Полноценные программы — скоро</h2></div><a href="/study/courses">Coming Soon →</a></div>
+      <a class="home-coming-card" href="/study/courses">
+        <div><span class="status-pill soon">COMING SOON</span><h3>C · C++ · Go · Linux</h3><p>Готовлю структурированные треки с практикой, материалами и прогрессом в кабинете. Пока обучение доступно в формате индивидуальных занятий.</p></div>
+        <span class="home-coming-arrow">→</span>
+      </a>
+    </section>
+
+    <section class="study-section study-process">
+      <div class="section-heading"><div><span class="study-kicker">КАК ЭТО РАБОТАЕТ</span><h2>Один поток, без хаоса</h2></div></div>
+      <div class="process-grid">
+        <article><span>01</span><h3>Аккаунт</h3><p>Создаёте профиль один раз. Контакты и история занятий остаются в кабинете.</p></article>
+        <article><span>02</span><h3>Запись</h3><p>Один раз выбираете свободный еженедельный слот. Если планы меняются, в кабинете можно запросить постоянный или разовый перенос.</p></article>
+        <article><span>03</span><h3>Работа</h3><p>В кабинете появляются дата и ссылка на конференцию, а после урока — теория, запись занятия и домашнее задание.</p></article>
+      </div>
+    </section>
+  </main>
+  {{template "study_footer" .}}
+</body>
+</html>
