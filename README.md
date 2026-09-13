@@ -2,6 +2,32 @@
 
 Go-сайт с публичным портфолио и учебным сервисом KIRILL.STUDY. Учебная часть поддерживает регистрацию студентов, несколько постоянных еженедельных занятий, календари студента и преподавателя, согласование переносов, материалы после уроков, домашние задания, конференции, кабинеты и внутренние уведомления.
 
+
+## Структура проекта
+
+```text
+.
+├── cmd/server/            # точка входа приложения
+├── internal/app/          # backend: HTTP, auth, PostgreSQL, расписание, уроки
+│   ├── handlers_*.go      # HTML-обработчики
+│   ├── api_*.go           # JSON API
+│   ├── store_*.go         # работа с данными по функциональным областям
+│   ├── auth*.go           # пользователи, сессии, пароли и admin-функции
+│   ├── database.go        # PostgreSQL adapter
+│   ├── migrations.go      # схема и миграции
+│   ├── schedule.go        # доступные временные слоты
+│   └── server.go          # HTTP server и middleware
+├── web/
+│   ├── templates/         # HTML templates
+│   └── static/            # CSS, JavaScript и изображения
+├── deploy/                # systemd, nginx, PostgreSQL schema и инструкция
+├── Makefile
+├── go.mod
+└── README.md
+```
+
+Большие монолитные файлы разделены по назначению: маршруты, кабинеты, API, расписание, переносы, материалы уроков и уведомления находятся отдельно. `cmd/server` содержит только запуск приложения; внутренняя реализация скрыта в `internal/app`.
+
 ## PostgreSQL
 
 Новая версия использует **PostgreSQL как единственный источник данных**. SQLite больше не используется, поэтому `study.db` приложению не нужен.
@@ -112,7 +138,7 @@ export COOKIE_SECURE=false
 export PORT=3000
 
 go mod download
-go run .
+go run ./cmd/server
 ```
 
 После первого старта таблицы создадутся автоматически. `ADMIN_PASSWORD` используется только для первичного создания администратора; его пароль также сохраняется только в виде хэша.
@@ -148,7 +174,7 @@ BOOKING_SCHEDULE='2=18:00,19:30,21:00;4=18:00,19:30,21:00;6=12:00,13:30,15:00'
 ```bash
 go test ./...
 go vet ./...
-go build -o cosmic-portfolio .
+go build -o cosmic-portfolio ./cmd/server
 ```
 
 `github.com/lib/pq` — Go-драйвер PostgreSQL; системные `libpq-dev`, `pkg-config` и CGO для этой версии не нужны.

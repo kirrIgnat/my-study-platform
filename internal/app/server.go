@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -14,7 +15,21 @@ type PageData struct {
 	Title string
 }
 
-var templates = template.Must(template.ParseGlob("templates/*.html"))
+var templates = mustLoadTemplates()
+
+func projectPath(candidates ...string) string {
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return candidates[0]
+}
+
+func mustLoadTemplates() *template.Template {
+	dir := projectPath("web/templates", "../../web/templates")
+	return template.Must(template.ParseGlob(filepath.Join(dir, "*.html")))
+}
 
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +63,7 @@ func render(w http.ResponseWriter, name string, data PageData) {
 	}
 }
 
-func main() {
+func Run() {
 	mux := http.NewServeMux()
 
 	databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
@@ -71,7 +86,8 @@ func main() {
 	study := NewStudyApp(db, auth)
 	study.RegisterRoutes(mux)
 
-	static := http.FileServer(http.Dir("static"))
+	staticDir := projectPath("web/static", "../../web/static")
+	static := http.FileServer(http.Dir(staticDir))
 	mux.Handle("/static/", http.StripPrefix("/static/", static))
 
 	mux.HandleFunc("/", onlyGet(func(w http.ResponseWriter, r *http.Request) {

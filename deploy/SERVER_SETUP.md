@@ -48,7 +48,7 @@ sudo mkdir -p /opt/cosmic-portfolio
 cd /path/to/project
 go test ./...
 go vet ./...
-go build -trimpath -ldflags='-s -w' -o cosmic-portfolio .
+go build -trimpath -ldflags='-s -w' -o cosmic-portfolio ./cmd/server
 ```
 
 Установка:
@@ -198,7 +198,7 @@ sudo -u postgres dropdb kirill_study_restore_test
 cd /path/to/project
 go test ./...
 go vet ./...
-go build -trimpath -ldflags='-s -w' -o cosmic-portfolio .
+go build -trimpath -ldflags='-s -w' -o cosmic-portfolio ./cmd/server
 sudo systemctl stop cosmic-portfolio
 sudo cp cosmic-portfolio /opt/cosmic-portfolio/
 sudo rm -rf /opt/cosmic-portfolio/templates /opt/cosmic-portfolio/static

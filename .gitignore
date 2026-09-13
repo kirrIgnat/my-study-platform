@@ -1,19 +1,60 @@
-# Compiled binary
 cosmic-portfolio
+my-study-platform
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# Environment / secrets
+*.test
+
+*.out
+coverage.out
+
+go.work
+go.work.sum
+
+
+
 .env
 .env.*
 !.env.example
 
-# Logs
-*.log
+config.local.*
+secrets/
+*.pem
+*.key
 
-# Backups
 *.sql
 *.dump
+*.backup
+backups/
 
-# OS / editors
-.DS_Store
+postgres-data/
+
+*.log
+logs/
+tmp/
+temp/
+*.pid
+
 .vscode/
 .idea/
+*.swp
+*.swo
+
+]]
+.DS_Store
+.AppleDouble
+.LSOverride
+
+
+
+Thumbs.db
+Desktop.ini
+
+
+*.zip
+*.tar
+*.tar.gz
+*.7z

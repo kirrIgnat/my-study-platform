@@ -1,4 +1,4 @@
-module cosmic-portfolio
+module github.com/kirrIgnat/my-study-platform
 
 go 1.22
 
