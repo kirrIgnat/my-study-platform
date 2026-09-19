@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019">
+  <meta name="csrf-token" content="{{.CSRF}}">
+  <link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+  <link rel="stylesheet" href="/static/css/study_admin_slots.css?v=20260918-1">
+</head>
+<body class="study-body admin-body teacher-slots-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>
+
+  <main class="teacher-slots-page">
+    <header class="teacher-slots-header">
+      <div>
+        <a class="teacher-slots-back" href="/study/admin">← Панель преподавателя</a>
+        <span class="study-kicker">ADMIN · AVAILABILITY</span>
+        <h1>Мои слоты</h1>
+        <p>Отметьте время, в которое ученики могут записываться на постоянные занятия.</p>
+      </div>
+      <div class="teacher-slots-meta">
+        <span>Часовой пояс</span>
+        <strong id="teacherSlotsTimezone">—</strong>
+      </div>
+    </header>
+
+    <section class="teacher-slots-panel">
+      <div class="teacher-slots-toolbar">
+        <div class="teacher-slots-legend" aria-label="Обозначения">
+          <span><i class="legend-dot available"></i> доступен</span>
+          <span><i class="legend-dot occupied"></i> занят учеником</span>
+          <span><i class="legend-dot off"></i> недоступен</span>
+        </div>
+        <button class="study-button primary" type="button" id="teacherSlotsSave">Сохранить</button>
+      </div>
+
+      <div class="teacher-slots-message" id="teacherSlotsMessage" role="status" aria-live="polite"></div>
+      <div class="teacher-slots-days" id="teacherSlotsDays">
+        <div class="teacher-slots-loading">Загрузка расписания…</div>
+      </div>
+    </section>
+
+    <section class="teacher-slots-note">
+      <b>Как это работает</b>
+      <p>Выбранные слоты сразу становятся доступными ученикам. Если слот уже закреплён за учеником, он отображается как занятый и не удаляется этой страницей.</p>
+    </section>
+  </main>
+
+  <script src="/static/js/study_admin_slots.js?v=20260918-1"></script>
+</body>
+</html>

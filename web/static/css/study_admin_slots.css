@@ -1,0 +1,260 @@
+.teacher-slots-body {
+  min-height: 100vh;
+}
+
+.teacher-slots-page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 64px;
+}
+
+.teacher-slots-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.teacher-slots-header h1 {
+  margin: 8px 0 8px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1;
+}
+
+.teacher-slots-header p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--study-muted, #8ea0b3);
+  line-height: 1.6;
+}
+
+.teacher-slots-back {
+  display: inline-flex;
+  margin-bottom: 18px;
+  color: var(--study-muted, #8ea0b3);
+  font-size: 14px;
+}
+
+.teacher-slots-back:hover {
+  color: inherit;
+}
+
+.teacher-slots-meta {
+  min-width: 180px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.teacher-slots-meta span,
+.teacher-slots-meta strong {
+  display: block;
+}
+
+.teacher-slots-meta span {
+  margin-bottom: 4px;
+  color: var(--study-muted, #8ea0b3);
+  font-size: 12px;
+}
+
+.teacher-slots-panel,
+.teacher-slots-note {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  background: rgba(8, 18, 28, 0.76);
+}
+
+.teacher-slots-panel {
+  padding: 20px;
+}
+
+.teacher-slots-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.teacher-slots-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  color: var(--study-muted, #8ea0b3);
+  font-size: 13px;
+}
+
+.teacher-slots-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.legend-dot.available {
+  background: #4f9ab8;
+}
+
+.legend-dot.occupied {
+  background: #9b7a4b;
+}
+
+.legend-dot.off {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.teacher-slots-message {
+  min-height: 22px;
+  margin: 2px 0 12px;
+  color: var(--study-muted, #8ea0b3);
+  font-size: 13px;
+}
+
+.teacher-slots-message.success {
+  color: #8bd4ae;
+}
+
+.teacher-slots-message.error {
+  color: #e79b9b;
+}
+
+.teacher-slots-days {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.teacher-slot-day {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.teacher-slot-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.teacher-slot-day-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.teacher-slot-day-head span {
+  color: var(--study-muted, #8ea0b3);
+  font-size: 12px;
+}
+
+.teacher-slot-times {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.teacher-slot-button {
+  min-height: 39px;
+  padding: 7px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.teacher-slot-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(133, 193, 216, 0.32);
+}
+
+.teacher-slot-button.selected {
+  border-color: rgba(100, 186, 219, 0.62);
+  background: rgba(67, 147, 179, 0.2);
+}
+
+.teacher-slot-button.occupied,
+.teacher-slot-button.occupied.selected {
+  border-color: rgba(198, 155, 89, 0.48);
+  background: rgba(158, 113, 52, 0.18);
+  cursor: not-allowed;
+  opacity: .82;
+}
+
+.teacher-slots-loading {
+  grid-column: 1 / -1;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--study-muted, #8ea0b3);
+}
+
+.teacher-slots-loading.error {
+  color: #e79b9b;
+}
+
+.teacher-slots-note {
+  margin-top: 14px;
+  padding: 18px 20px;
+}
+
+.teacher-slots-note p {
+  margin: 6px 0 0;
+  color: var(--study-muted, #8ea0b3);
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .teacher-slots-days {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-slot-times {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .teacher-slots-page {
+    width: min(100% - 20px, 1180px);
+    padding-top: 20px;
+  }
+
+  .teacher-slots-header,
+  .teacher-slots-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .teacher-slots-meta {
+    min-width: 0;
+  }
+
+  .teacher-slots-panel {
+    padding: 12px;
+  }
+
+  .teacher-slot-day {
+    padding: 12px;
+  }
+
+  .teacher-slot-times {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  #teacherSlotsSave {
+    width: 100%;
+  }
+}

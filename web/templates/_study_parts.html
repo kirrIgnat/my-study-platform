@@ -39,6 +39,7 @@
       {{if eq .User.Role "admin"}}
         <a {{if eq .CabinetTab "overview"}}class="active"{{end}} href="/study/admin?tab=overview">Обзор</a>
         <a {{if eq .CabinetTab "schedule"}}class="active"{{end}} href="/study/admin?tab=schedule">Расписание</a>
+        <a {{if eq .CabinetTab "slots"}}class="active"{{end}} href="/study/admin/slots">Слоты</a>
         <a {{if eq .CabinetTab "transfers"}}class="active"{{end}} href="/study/admin?tab=transfers">Переносы</a>
         <a {{if eq .CabinetTab "students"}}class="active"{{end}} href="/study/admin?tab=students">Ученики</a>
       {{else}}

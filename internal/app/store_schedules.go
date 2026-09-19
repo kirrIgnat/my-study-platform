@@ -45,6 +45,12 @@ func getUserScheduleByID(db *AppDB, userID, scheduleID string) (*TutoringSchedul
 }
 
 func listRecurringSlotOptions(db *AppDB, schedule map[time.Weekday][]string, loc *time.Location, userID, currentScheduleID string) ([]RecurringSlotOption, error) {
+	effectiveSchedule, err := effectiveTeacherSchedule(db, loc, schedule)
+	if err != nil {
+		return nil, err
+	}
+	schedule = effectiveSchedule
+
 	rows, err := db.Query(`SELECT id,user_id,weekday,time FROM tutoring_schedules WHERE status='active' AND timezone=?`, loc.String())
 	if err != nil {
 		return nil, err
@@ -197,7 +203,11 @@ func createRecurringSchedule(db *AppDB, user StudyUser, date, clock, topic, defa
 	if err != nil {
 		return TutoringSchedule{}, errors.New("некорректная дата")
 	}
-	if err := validateStudySlot(date, clock, loc, allowed); err != nil {
+	effectiveAllowed, err := effectiveTeacherSchedule(db, loc, allowed)
+	if err != nil {
+		return TutoringSchedule{}, err
+	}
+	if err := validateStudySlot(date, clock, loc, effectiveAllowed); err != nil {
 		return TutoringSchedule{}, err
 	}
 	weekday := weekdayNumber(parsedDate.Weekday())
@@ -263,12 +273,15 @@ func recurringSlotAllowed(allowed map[time.Weekday][]string, weekday int, clock 
 }
 
 func requestPermanentReschedule(db *AppDB, user StudyUser, scheduleID string, weekday int, clock, reason string, loc *time.Location, allowed map[time.Weekday][]string) (RescheduleRequest, error) {
-	if !recurringSlotAllowed(allowed, weekday, clock) {
+	effectiveAllowed, err := effectiveTeacherSchedule(db, loc, allowed)
+	if err != nil {
+		return RescheduleRequest{}, err
+	}
+	if !recurringSlotAllowed(effectiveAllowed, weekday, clock) {
 		return RescheduleRequest{}, errors.New("такого постоянного слота нет в расписании")
 	}
 	scheduleID = strings.TrimSpace(scheduleID)
 	var schedule *TutoringSchedule
-	var err error
 	if scheduleID != "" {
 		schedule, err = getUserScheduleByID(db, user.ID, scheduleID)
 	} else {

@@ -78,6 +78,9 @@ func Run() {
 	if err := migrateStudyDB(db); err != nil {
 		log.Fatalf("migrate study database: %v", err)
 	}
+	if err := ensureTeacherSlotsTables(db); err != nil {
+		log.Fatalf("migrate teacher slots: %v", err)
+	}
 	auth := NewAuthService(db)
 	if err := bootstrapAdmin(auth); err != nil {
 		log.Fatalf("bootstrap admin: %v", err)
@@ -85,6 +88,7 @@ func Run() {
 	auth.CleanupSessions()
 	study := NewStudyApp(db, auth)
 	study.RegisterRoutes(mux)
+	RegisterTeacherSlotRoutes(mux, study, db)
 
 	staticDir := projectPath("web/static", "../../web/static")
 	static := http.FileServer(http.Dir(staticDir))

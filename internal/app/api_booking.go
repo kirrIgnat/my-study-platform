@@ -23,7 +23,13 @@ func (s *StudyApp) availabilityAPI(w http.ResponseWriter, r *http.Request) {
 	if session := s.session(r); session != nil && session.User.Role == "student" {
 		studentID = session.User.ID
 	}
-	availability, err := studyAvailability(s.db, s.loc, s.schedule, days, studentID)
+	availableSchedule, err := s.currentBookingSchedule()
+	if err != nil {
+		log.Printf("load teacher slots: %v", err)
+		writeJSONError(w, "не удалось загрузить расписание", http.StatusInternalServerError)
+		return
+	}
+	availability, err := studyAvailability(s.db, s.loc, availableSchedule, days, studentID)
 	if err != nil {
 		log.Printf("study availability: %v", err)
 		writeJSONError(w, "не удалось загрузить расписание", http.StatusInternalServerError)
@@ -57,7 +63,13 @@ func (s *StudyApp) bookingAPI(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, "комментарий слишком длинный", http.StatusBadRequest)
 		return
 	}
-	schedule, err := createRecurringSchedule(s.db, session.User, req.Date, req.Time, req.Topic, s.defaultMeetingURL, s.loc, s.schedule)
+	availableSchedule, err := s.currentBookingSchedule()
+	if err != nil {
+		log.Printf("load teacher slots: %v", err)
+		writeJSONError(w, "не удалось загрузить расписание", http.StatusInternalServerError)
+		return
+	}
+	createdSchedule, err := createRecurringSchedule(s.db, session.User, req.Date, req.Time, req.Topic, s.defaultMeetingURL, s.loc, availableSchedule)
 	if err != nil {
 		switch {
 		case errors.Is(err, errStudySlotBusy), errors.Is(err, errStudyRecurringSlotBusy):
@@ -70,7 +82,7 @@ func (s *StudyApp) bookingAPI(w http.ResponseWriter, r *http.Request) {
 	if err := s.tg.NotifyBooking(StudyBooking{UserName: session.User.Name, UserEmail: session.User.Email, Telegram: session.User.Telegram, Date: req.Date, Time: req.Time, Timezone: s.loc.String(), Topic: req.Topic, Status: "confirmed"}); err != nil {
 		log.Printf("telegram schedule notification: %v", err)
 	}
-	writeJSON(w, map[string]any{"ok": true, "schedule": schedule}, http.StatusCreated)
+	writeJSON(w, map[string]any{"ok": true, "schedule": createdSchedule}, http.StatusCreated)
 }
 
 func (s *StudyApp) recurringSlotsAPI(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +101,12 @@ func (s *StudyApp) recurringSlotsAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	options, err := listRecurringSlotOptions(s.db, s.schedule, s.loc, session.User.ID, currentScheduleID)
+	availableSchedule, err := s.currentBookingSchedule()
+	if err != nil {
+		writeJSONError(w, "не удалось загрузить слоты", http.StatusInternalServerError)
+		return
+	}
+	options, err := listRecurringSlotOptions(s.db, availableSchedule, s.loc, session.User.ID, currentScheduleID)
 	if err != nil {
 		writeJSONError(w, "не удалось загрузить слоты", http.StatusInternalServerError)
 		return
@@ -106,7 +123,12 @@ func (s *StudyApp) rescheduleAvailabilityAPI(w http.ResponseWriter, r *http.Requ
 		writeJSONError(w, "нужен аккаунт студента", http.StatusUnauthorized)
 		return
 	}
-	availability, err := rescheduleAvailability(s.db, s.loc, s.schedule, session.User.ID, strings.TrimSpace(r.URL.Query().Get("booking_id")))
+	availableSchedule, err := s.currentBookingSchedule()
+	if err != nil {
+		writeJSONError(w, "не удалось загрузить расписание", http.StatusInternalServerError)
+		return
+	}
+	availability, err := rescheduleAvailability(s.db, s.loc, availableSchedule, session.User.ID, strings.TrimSpace(r.URL.Query().Get("booking_id")))
 	if err != nil {
 		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -138,7 +160,12 @@ func (s *StudyApp) temporaryRescheduleAPI(w http.ResponseWriter, r *http.Request
 		writeJSONError(w, "комментарий слишком длинный", http.StatusBadRequest)
 		return
 	}
-	_, err := requestTemporaryReschedule(s.db, session.User, strings.TrimSpace(req.BookingID), strings.TrimSpace(req.Date), strings.TrimSpace(req.Time), req.Reason, s.loc, s.schedule)
+	availableSchedule, err := s.currentBookingSchedule()
+	if err != nil {
+		writeJSONError(w, "не удалось загрузить расписание", http.StatusInternalServerError)
+		return
+	}
+	_, err = requestTemporaryReschedule(s.db, session.User, strings.TrimSpace(req.BookingID), strings.TrimSpace(req.Date), strings.TrimSpace(req.Time), req.Reason, s.loc, availableSchedule)
 	if err != nil {
 		switch {
 		case errors.Is(err, errTemporaryMoveLimitReached):
@@ -179,7 +206,12 @@ func (s *StudyApp) permanentRescheduleAPI(w http.ResponseWriter, r *http.Request
 		writeJSONError(w, "комментарий слишком длинный", http.StatusBadRequest)
 		return
 	}
-	_, err := requestPermanentReschedule(s.db, session.User, strings.TrimSpace(req.ScheduleID), req.Weekday, strings.TrimSpace(req.Time), req.Reason, s.loc, s.schedule)
+	availableSchedule, err := s.currentBookingSchedule()
+	if err != nil {
+		writeJSONError(w, "не удалось загрузить расписание", http.StatusInternalServerError)
+		return
+	}
+	_, err = requestPermanentReschedule(s.db, session.User, strings.TrimSpace(req.ScheduleID), req.Weekday, strings.TrimSpace(req.Time), req.Reason, s.loc, availableSchedule)
 	if err != nil {
 		switch {
 		case errors.Is(err, errRescheduleAlreadyPending):
