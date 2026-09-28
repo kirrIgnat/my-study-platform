@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-slots-1"></head>
 <body class="study-body cabinet-body"><div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
 <main class="study-main cabinet-main notifications-page">
   <section class="cabinet-heading"><div><span class="study-kicker">УВЕДОМЛЕНИЯ</span><h1>Важные события</h1><p>{{if eq .User.Role "admin"}}Заявки, изменения расписания и события учебного процесса.{{else}}Домашние задания, материалы, конференции и решения преподавателя.{{end}}</p></div>{{if gt .Unread 0}}<form method="post" action="/study/notifications/read"><input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="all" value="1"><button class="study-button secondary small" type="submit">Прочитать все</button></form>{{end}}</section>

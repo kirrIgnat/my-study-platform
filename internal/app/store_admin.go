@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func updateBookingStatus(db *AppDB, bookingID, status string) error {
+func updateBookingStatus(db *AppDB, adminID, bookingID, status string) error {
 	if status != "confirmed" && status != "cancelled" && status != "done" && status != "pending" {
 		return errors.New("invalid booking status")
 	}
@@ -21,6 +21,11 @@ func updateBookingStatus(db *AppDB, bookingID, status string) error {
 		if err := tx.exec(`UPDATE bookings SET status=?,updated_at=? WHERE id=?`, status, now, bookingID); err != nil {
 			return err
 		}
+		if status == "cancelled" {
+			if err := tx.exec(`UPDATE reschedule_requests SET status='rejected',teacher_note='Занятие отменено преподавателем',resolved_at=?,resolved_by=? WHERE booking_id=? AND status='pending'`, now, adminID, bookingID); err != nil {
+				return err
+			}
+		}
 		if rows[0][1] != status {
 			return createNotificationTx(tx, rows[0][0], "lesson_status", "Статус занятия изменён", fmt.Sprintf("Занятие %s в %s: новый статус — %s.", rows[0][2], rows[0][3], status), bookingID, "", now)
 		}
@@ -28,34 +33,187 @@ func updateBookingStatus(db *AppDB, bookingID, status string) error {
 	})
 }
 
-func updateBookingAdmin(db *AppDB, bookingID, status, meetingURL string) error {
+func updateBookingAdmin(db *AppDB, adminID, bookingID, status, meetingURL, date, clock string, loc *time.Location, allowed map[time.Weekday][]string) error {
 	if status != "confirmed" && status != "cancelled" && status != "done" && status != "pending" {
 		return errors.New("invalid booking status")
 	}
 	meetingURL = strings.TrimSpace(meetingURL)
+	date = strings.TrimSpace(date)
+	clock = strings.TrimSpace(clock)
 	if len(meetingURL) > 2048 || (meetingURL != "" && !validHTTPURL(meetingURL)) {
 		return errors.New("некорректная ссылка на конференцию")
 	}
+	parsedDate, err := time.ParseInLocation("2006-01-02", date, loc)
+	if err != nil {
+		return errors.New("некорректная дата занятия")
+	}
+	if _, err := time.Parse("15:04", clock); err != nil {
+		return errors.New("некорректное время занятия")
+	}
+	target, err := combineDateAndTime(parsedDate, clock, loc)
+	if err != nil {
+		return errors.New("некорректное время занятия")
+	}
+
+	rows, err := db.Query(`SELECT user_id,status,meeting_url,date,time,COALESCE(schedule_id,''),COALESCE(occurrence_key,''),slot_start FROM bookings WHERE id=? LIMIT 1`, bookingID)
+	if err != nil {
+		return err
+	}
+	if len(rows) == 0 {
+		return errors.New("занятие не найдено")
+	}
+	current := rows[0]
+	moving := current[3] != date || current[4] != clock
+	if moving {
+		effectiveAllowed, err := effectiveTeacherSchedule(db, loc, allowed)
+		if err != nil {
+			return err
+		}
+		if !recurringSlotAllowed(effectiveAllowed, weekdayNumber(parsedDate.Weekday()), clock) {
+			return errors.New("это время не включено в ваши слоты преподавателя")
+		}
+		if target.Before(time.Now().In(loc).Add(-5 * time.Minute)) {
+			return errors.New("нельзя перенести занятие в прошлое")
+		}
+	}
+	resultActive := status == "pending" || status == "confirmed"
+	if resultActive {
+		claimed, err := slotClaimedByRecurringSchedule(db, weekdayNumber(parsedDate.Weekday()), clock, loc.String(), current[5])
+		if err != nil {
+			return err
+		}
+		if claimed {
+			return errors.New("выбранное время пересекается с постоянным занятием другого ученика")
+		}
+		busy, err := activeBookingAtSlot(db, target.UTC().Unix(), bookingID)
+		if err != nil {
+			return err
+		}
+		if busy {
+			return errors.New("выбранное время пересекается с другим занятием")
+		}
+	}
+
 	now := time.Now().UTC().Unix()
 	return db.WithTx(func(tx *dbTx) error {
-		rows, err := tx.query(`SELECT user_id,status,meeting_url,date,time FROM bookings WHERE id=? LIMIT 1`, bookingID)
+		if resultActive {
+			recurringRows, err := tx.query(`SELECT id,weekday,time FROM tutoring_schedules WHERE timezone=? AND status='active' AND id<>?`, loc.String(), current[5])
+			if err != nil {
+				return err
+			}
+			for _, row := range recurringRows {
+				if recurringSlotsOverlap(parseInt(row[1]), row[2], weekdayNumber(parsedDate.Weekday()), clock) {
+					return errStudySlotBusy
+				}
+			}
+
+			durationSeconds := int64(lessonDuration / time.Second)
+			busyRows, err := tx.query(`SELECT id FROM bookings WHERE status IN ('pending','confirmed') AND id<>? AND slot_start>? AND slot_start<? LIMIT 1`, bookingID, target.UTC().Unix()-durationSeconds, target.UTC().Unix()+durationSeconds)
+			if err != nil {
+				return err
+			}
+			if len(busyRows) > 0 {
+				return errStudySlotBusy
+			}
+		}
+		rescheduledValue := 0
+		if moving {
+			rescheduledValue = 1
+		}
+		if err := tx.exec(`UPDATE bookings SET status=?,meeting_url=?,slot_start=?,date=?,time=?,week_key=?,
+			original_date=CASE WHEN ?=1 AND original_date='' THEN ? ELSE original_date END,
+			original_time=CASE WHEN ?=1 AND original_time='' THEN ? ELSE original_time END,
+			rescheduled=CASE WHEN ?=1 THEN 1 ELSE rescheduled END,updated_at=? WHERE id=?`,
+			status, meetingURL, target.UTC().Unix(), date, clock, bookingWeekKey(parsedDate),
+			rescheduledValue, current[3], rescheduledValue, current[4], rescheduledValue, now, bookingID); err != nil {
+			if isDBConstraint(err) {
+				return errStudySlotBusy
+			}
+			return err
+		}
+		if status == "cancelled" {
+			if err := tx.exec(`UPDATE reschedule_requests SET status='rejected',teacher_note='Занятие отменено преподавателем',resolved_at=?,resolved_by=? WHERE booking_id=? AND status='pending'`, now, adminID, bookingID); err != nil {
+				return err
+			}
+		}
+		if current[1] != status || current[2] != meetingURL || moving {
+			body := fmt.Sprintf("Занятие %s в %s обновлено.", date, clock)
+			if moving {
+				body = fmt.Sprintf("Занятие перенесено: %s %s → %s %s. Длительность — %d минут.", current[3], current[4], date, clock, lessonDurationMinutes)
+			}
+			if meetingURL != "" && current[2] != meetingURL {
+				body += " Ссылка на конференцию доступна в личном кабинете."
+			}
+			return createNotificationTx(tx, current[0], "lesson_updated", "Занятие обновлено", body, bookingID, "", now)
+		}
+		return nil
+	})
+}
+
+func deleteBookingAdmin(db *AppDB, adminID, bookingID string) error {
+	bookingID = strings.TrimSpace(bookingID)
+	if bookingID == "" {
+		return errors.New("занятие не найдено")
+	}
+	now := time.Now().UTC().Unix()
+	return db.WithTx(func(tx *dbTx) error {
+		rows, err := tx.query(`SELECT user_id,date,time,COALESCE(schedule_id,''),COALESCE(occurrence_key,''),COALESCE(original_date,''),COALESCE(original_time,'') FROM bookings WHERE id=? LIMIT 1`, bookingID)
 		if err != nil {
 			return err
 		}
 		if len(rows) == 0 {
 			return errors.New("занятие не найдено")
 		}
-		if err := tx.exec(`UPDATE bookings SET status=?,meeting_url=?,updated_at=? WHERE id=?`, status, meetingURL, now, bookingID); err != nil {
+		row := rows[0]
+		scheduleID := row[3]
+		occurrenceKey := row[4]
+
+		if scheduleID != "" {
+			if occurrenceKey == "" {
+				originalDate := row[5]
+				if originalDate == "" {
+					originalDate = row[1]
+				}
+				parsedDate, parseErr := time.Parse("2006-01-02", originalDate)
+				if parseErr != nil {
+					return errors.New("не удалось определить регулярное занятие")
+				}
+				occurrenceKey = bookingWeekKey(parsedDate)
+			}
+
+			// Deleting one occurrence of a recurring lesson means ending this
+			// recurring schedule from the selected occurrence onward. Past
+			// lessons remain in history, while the paused schedule can no longer
+			// generate new bookings.
+			if err := tx.exec(`UPDATE tutoring_schedules SET status='paused',updated_at=? WHERE id=?`, now, scheduleID); err != nil {
+				return err
+			}
+			if err := tx.exec(`UPDATE reschedule_requests SET status='rejected',teacher_note='Регулярное расписание завершено преподавателем',resolved_at=?,resolved_by=?
+				WHERE status='pending' AND ((schedule_id=? AND kind='permanent') OR booking_id IN (
+					SELECT id FROM bookings WHERE schedule_id=? AND occurrence_key>=?
+				))`, now, adminID, scheduleID, scheduleID, occurrenceKey); err != nil {
+				return err
+			}
+			if err := tx.exec(`DELETE FROM bookings WHERE schedule_id=? AND occurrence_key>=?`, scheduleID, occurrenceKey); err != nil {
+				return err
+			}
+
+			originalTime := row[6]
+			if originalTime == "" {
+				originalTime = row[2]
+			}
+			body := fmt.Sprintf("Регулярное занятие с %s в %s удалено вместе со всеми последующими занятиями этого слота.", row[1], originalTime)
+			return createNotificationTx(tx, row[0], "schedule_ended", "Регулярное расписание завершено", body, "", "", now)
+		}
+
+		if err := tx.exec(`UPDATE reschedule_requests SET status='rejected',teacher_note='Занятие удалено преподавателем',resolved_at=?,resolved_by=? WHERE booking_id=? AND status='pending'`, now, adminID, bookingID); err != nil {
 			return err
 		}
-		if rows[0][1] != status || rows[0][2] != meetingURL {
-			body := fmt.Sprintf("Занятие %s в %s обновлено.", rows[0][3], rows[0][4])
-			if meetingURL != "" && rows[0][2] != meetingURL {
-				body += " Ссылка на конференцию доступна в личном кабинете."
-			}
-			return createNotificationTx(tx, rows[0][0], "lesson_updated", "Занятие обновлено", body, bookingID, "", now)
+		if err := tx.exec(`DELETE FROM bookings WHERE id=?`, bookingID); err != nil {
+			return err
 		}
-		return nil
+		body := fmt.Sprintf("Занятие %s в %s удалено преподавателем из расписания.", row[1], row[2])
+		return createNotificationTx(tx, row[0], "lesson_deleted", "Занятие удалено", body, "", "", now)
 	})
 }
 

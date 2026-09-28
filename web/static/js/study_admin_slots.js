@@ -60,7 +60,10 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'teacher-slot-button';
-        button.textContent = time;
+        const [hour, minute] = time.split(':').map(Number);
+        const endTotal = hour * 60 + minute + 90;
+        const end = `${String(Math.floor(endTotal / 60) % 24).padStart(2, '0')}:${String(endTotal % 60).padStart(2, '0')}`;
+        button.textContent = `${time}–${end}`;
         button.dataset.slotKey = key;
 
         if (selected.has(key)) button.classList.add('selected');

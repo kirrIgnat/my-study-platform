@@ -19,43 +19,47 @@ type StudyCourse struct {
 }
 
 type StudyBooking struct {
-	ID            string
-	UserID        string
-	UserName      string
-	UserEmail     string
-	Telegram      string
-	SlotStart     time.Time
-	Date          string
-	Time          string
-	Timezone      string
-	Topic         string
-	MeetingURL    string
-	WeekKey       string
-	ScheduleID    string
-	OccurrenceKey string
-	OriginalDate  string
-	OriginalTime  string
-	Rescheduled   bool
-	Status        string
-	CreatedAt     time.Time
-	Tests         []TestAssignment `json:"-"`
+	ID              string
+	UserID          string
+	UserName        string
+	UserEmail       string
+	Telegram        string
+	SlotStart       time.Time
+	Date            string
+	Time            string
+	EndTime         string
+	DurationMinutes int
+	Timezone        string
+	Topic           string
+	MeetingURL      string
+	WeekKey         string
+	ScheduleID      string
+	OccurrenceKey   string
+	OriginalDate    string
+	OriginalTime    string
+	Rescheduled     bool
+	Status          string
+	CreatedAt       time.Time
+	Tests           []TestAssignment `json:"-"`
 }
 
 type TutoringSchedule struct {
-	ID            string
-	UserID        string
-	UserName      string
-	UserEmail     string
-	Weekday       int
-	WeekdayName   string
-	Time          string
-	Timezone      string
-	Topic         string
-	MeetingURL    string
-	EffectiveFrom string
-	Status        string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID              string
+	UserID          string
+	UserName        string
+	UserEmail       string
+	Weekday         int
+	WeekdayName     string
+	Time            string
+	EndTime         string
+	DurationMinutes int
+	Timezone        string
+	Topic           string
+	MeetingURL      string
+	EffectiveFrom   string
+	Status          string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type RecurringSlotOption struct {
@@ -90,24 +94,27 @@ type RescheduleRequest struct {
 }
 
 type StudyLesson struct {
-	BookingID   string
-	UserID      string
-	UserName    string
-	UserEmail   string
-	Date        string
-	Time        string
-	Timezone    string
-	Topic       string
-	MeetingURL  string
-	Status      string
-	Title       string
-	Theory      string
-	Homework    string
-	VideoURL    string
-	Published   bool
-	PublishedAt time.Time
-	UpdatedAt   time.Time
-	Tests       []TestAssignment `json:"-"`
+	BookingID       string
+	ScheduleID      string
+	UserID          string
+	UserName        string
+	UserEmail       string
+	Date            string
+	Time            string
+	EndTime         string
+	DurationMinutes int
+	Timezone        string
+	Topic           string
+	MeetingURL      string
+	Status          string
+	Title           string
+	Theory          string
+	Homework        string
+	VideoURL        string
+	Published       bool
+	PublishedAt     time.Time
+	UpdatedAt       time.Time
+	Tests           []TestAssignment `json:"-"`
 }
 
 type StudyNotification struct {

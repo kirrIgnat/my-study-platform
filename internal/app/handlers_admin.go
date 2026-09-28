@@ -31,8 +31,13 @@ func (s *StudyApp) admin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := s.adminData(w, r, session)
-	if r.URL.Query().Get("status") == "resolved" {
+	switch r.URL.Query().Get("status") {
+	case "resolved":
 		data.Success = "Запрос на перенос обработан. Ученик получил уведомление."
+	case "cancelled":
+		data.Success = "Занятие отменено. Ученик получил уведомление."
+	case "deleted":
+		data.Success = "Занятие удалено из расписания. Ученик получил уведомление."
 	}
 	renderStudy(w, "study_admin.html", data)
 }
@@ -47,11 +52,15 @@ func (s *StudyApp) adminBookingStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if err := updateBookingStatus(s.db, strings.TrimSpace(r.FormValue("booking_id")), strings.TrimSpace(r.FormValue("status"))); err != nil {
+	if err := updateBookingStatus(s.db, session.User.ID, strings.TrimSpace(r.FormValue("booking_id")), strings.TrimSpace(r.FormValue("status"))); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	http.Redirect(w, r, "/study/admin?tab=schedule", http.StatusSeeOther)
+	redirect := "/study/admin?tab=schedule"
+	if strings.TrimSpace(r.FormValue("status")) == "cancelled" {
+		redirect += "&status=cancelled"
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
 func (s *StudyApp) adminBookingUpdate(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +79,7 @@ func (s *StudyApp) adminBookingUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bookingID := strings.TrimSpace(r.FormValue("booking_id"))
-	if err := updateBookingAdmin(s.db, bookingID, strings.TrimSpace(r.FormValue("status")), r.FormValue("meeting_url")); err != nil {
+	if err := updateBookingAdmin(s.db, session.User.ID, bookingID, strings.TrimSpace(r.FormValue("status")), r.FormValue("meeting_url"), r.FormValue("date"), r.FormValue("time"), s.loc, s.schedule); err != nil {
 		data := s.baseData(w, r, "Занятие — KIRILL.STUDY", "admin")
 		data.CabinetTab = "schedule"
 		data.Error = err.Error()
@@ -80,6 +89,23 @@ func (s *StudyApp) adminBookingUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/study/admin/lesson?id="+bookingID+"&saved=schedule", http.StatusSeeOther)
+}
+
+func (s *StudyApp) adminBookingDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
+		return
+	}
+	session := s.requireAdmin(w, r)
+	if session == nil || !s.auth.VerifyCSRF(r, session) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if err := deleteBookingAdmin(s.db, session.User.ID, strings.TrimSpace(r.FormValue("booking_id"))); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/study/admin?tab=schedule&status=deleted", http.StatusSeeOther)
 }
 
 func (s *StudyApp) adminLesson(w http.ResponseWriter, r *http.Request) {

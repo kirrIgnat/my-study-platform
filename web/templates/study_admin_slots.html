@@ -6,7 +6,7 @@
   <title>{{.Title}}</title>
   <meta name="theme-color" content="#071019">
   <meta name="csrf-token" content="{{.CSRF}}">
-  <link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+  <link rel="stylesheet" href="/static/css/study.css?v=20260928-slots-1">
   <link rel="stylesheet" href="/static/css/study_admin_slots.css?v=20260918-2">
 </head>
 <body class="study-body admin-body cabinet-body teacher-slots-body">
@@ -19,7 +19,7 @@
         <a class="teacher-slots-back" href="/study/admin">← Панель преподавателя</a>
         <span class="study-kicker">ADMIN · AVAILABILITY</span>
         <h1>Мои слоты</h1>
-        <p>Отметьте время, в которое ученики могут записываться на постоянные занятия.</p>
+        <p>Отметьте время начала занятий. Каждое занятие длится 1 час 30 минут, поэтому пересекающиеся времена автоматически считаются занятыми для учеников.</p>
       </div>
       <div class="teacher-slots-meta">
         <span>Часовой пояс</span>
@@ -45,11 +45,11 @@
 
     <section class="teacher-slots-note">
       <b>Как это работает</b>
-      <p>Выбранные слоты сразу становятся доступными ученикам. Если слот уже закреплён за учеником, он отображается как занятый и не удаляется этой страницей.</p>
+      <p>Выбранные значения — это время начала. Конец занятия рассчитывается автоматически через 90 минут. Если старт уже закреплён за учеником, он отображается как занятый и не удаляется этой страницей; другие старты, пересекающиеся с его 90-минутным занятием, ученикам не предлагаются.</p>
     </section>
   </main>
 
   {{template "study_footer" .}}
-  <script src="/static/js/study_admin_slots.js?v=20260918-2"></script>
+  <script src="/static/js/study_admin_slots.js?v=20260928-slots-1"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260928-slots-1"></head>
 <body class="study-body admin-body cabinet-body"><div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
 <main class="study-main cabinet-main">
   <section class="cabinet-heading"><div><span class="study-kicker">ADMIN CABINET</span><h1>{{if eq .CabinetTab "overview"}}Панель преподавателя{{else if eq .CabinetTab "schedule"}}Календарь занятий{{else if eq .CabinetTab "transfers"}}Согласование переносов{{else}}Ученики{{end}}</h1><p>{{if eq .CabinetTab "overview"}}Краткая сводка учебного центра и важных событий.{{else if eq .CabinetTab "schedule"}}Все занятия всех учеников в едином календаре.{{else if eq .CabinetTab "transfers"}}Запросы учеников на постоянные и разовые переносы.{{else}}Откройте ученика, чтобы увидеть его календарь, материалы и выдать домашнее задание.{{end}}</p></div><a class="cabinet-center-link" href="/study/admin/slots">Мои слоты →</a><a class="cabinet-center-link" href="/study">Открыть учебный центр →</a></section>
@@ -28,6 +28,6 @@
 <dialog class="study-dialog student-inspector-dialog" id="studentInspectorDialog"><div class="student-inspector-shell"><div class="dialog-head"><div><span class="panel-label">УЧЕНИК</span><h2 id="studentInspectorTitle">Карточка ученика</h2><p id="studentInspectorMeta"></p></div><button class="dialog-close" type="button" data-close-student>×</button></div><div id="studentInspectorBody" class="student-inspector-body"><div class="empty-state"><b>Загрузка…</b></div></div></div></dialog>
 
 {{template "study_footer" .}}
-{{if eq .CabinetTab "schedule"}}<script src="/static/js/study_calendar.js?v=20260913-4"></script>{{end}}
-{{if eq .CabinetTab "students"}}<script src="/static/js/study_admin_students.js?v=20260913-4"></script>{{end}}
+{{if eq .CabinetTab "schedule"}}<script src="/static/js/study_calendar.js?v=20260928-slots-1"></script>{{end}}
+{{if eq .CabinetTab "students"}}<script src="/static/js/study_admin_students.js?v=20260928-slots-1"></script>{{end}}
 </body></html>

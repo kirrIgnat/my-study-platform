@@ -150,6 +150,12 @@ func resolveRescheduleRequest(db *AppDB, adminID, requestID, decision, teacherNo
 		})
 	}
 
+	effectiveAllowed, err := effectiveTeacherSchedule(db, loc, allowed)
+	if err != nil {
+		return err
+	}
+	allowed = effectiveAllowed
+
 	if kind == "temporary" {
 		if !recurringSlotAllowed(allowed, weekday, clock) || requestedUnix <= time.Now().UTC().Unix() {
 			return errors.New("запрошенный слот больше недоступен")

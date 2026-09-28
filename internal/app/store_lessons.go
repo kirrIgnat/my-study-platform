@@ -8,7 +8,7 @@ import (
 )
 
 func getAdminLesson(db *AppDB, bookingID string, loc *time.Location) (StudyLesson, error) {
-	rows, err := db.Query(`SELECT b.id,b.user_id,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.status,
+	rows, err := db.Query(`SELECT b.id,COALESCE(b.schedule_id,''),b.user_id,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.status,
 		u.name,u.email,COALESCE(l.title,''),COALESCE(l.theory,''),COALESCE(l.homework,''),COALESCE(l.video_url,''),
 		COALESCE(l.published,0),COALESCE(l.published_at,0),COALESCE(l.updated_at,0)
 		FROM bookings b JOIN users u ON u.id=b.user_id
@@ -20,11 +20,11 @@ func getAdminLesson(db *AppDB, bookingID string, loc *time.Location) (StudyLesso
 		return StudyLesson{}, errors.New("занятие не найдено")
 	}
 	row := rows[0]
-	lesson := StudyLesson{BookingID: row[0], UserID: row[1], Date: row[2], Time: row[3], Timezone: row[4], Topic: row[5], MeetingURL: row[6], Status: row[7], UserName: row[8], UserEmail: row[9], Title: row[10], Theory: row[11], Homework: row[12], VideoURL: row[13], Published: row[14] == "1"}
-	if ts := parseInt64(row[15]); ts > 0 {
+	lesson := StudyLesson{BookingID: row[0], ScheduleID: row[1], UserID: row[2], Date: row[3], Time: row[4], EndTime: lessonEndTime(row[4]), DurationMinutes: lessonDurationMinutes, Timezone: row[5], Topic: row[6], MeetingURL: row[7], Status: row[8], UserName: row[9], UserEmail: row[10], Title: row[11], Theory: row[12], Homework: row[13], VideoURL: row[14], Published: row[15] == "1"}
+	if ts := parseInt64(row[16]); ts > 0 {
 		lesson.PublishedAt = time.Unix(ts, 0).In(loc)
 	}
-	if ts := parseInt64(row[16]); ts > 0 {
+	if ts := parseInt64(row[17]); ts > 0 {
 		lesson.UpdatedAt = time.Unix(ts, 0).In(loc)
 	}
 	return lesson, nil
@@ -105,7 +105,7 @@ func listPublishedLessonsForStudent(db *AppDB, userID string, loc *time.Location
 	}
 	result := make([]StudyLesson, 0, len(rows))
 	for _, row := range rows {
-		lesson := StudyLesson{BookingID: row[0], UserID: row[1], Date: row[2], Time: row[3], Timezone: row[4], Topic: row[5], MeetingURL: row[6], Status: row[7], UserName: row[8], UserEmail: row[9], Title: row[10], Theory: row[11], Homework: row[12], VideoURL: row[13], Published: row[14] == "1"}
+		lesson := StudyLesson{BookingID: row[0], UserID: row[1], Date: row[2], Time: row[3], EndTime: lessonEndTime(row[3]), DurationMinutes: lessonDurationMinutes, Timezone: row[4], Topic: row[5], MeetingURL: row[6], Status: row[7], UserName: row[8], UserEmail: row[9], Title: row[10], Theory: row[11], Homework: row[12], VideoURL: row[13], Published: row[14] == "1"}
 		if ts := parseInt64(row[15]); ts > 0 {
 			lesson.PublishedAt = time.Unix(ts, 0).In(loc)
 		}
@@ -142,7 +142,7 @@ func listLessonsForStudentAdmin(db *AppDB, userID string, loc *time.Location) ([
 	}
 	result := make([]StudyLesson, 0, len(rows))
 	for _, row := range rows {
-		lesson := StudyLesson{BookingID: row[0], UserID: row[1], Date: row[2], Time: row[3], Timezone: row[4], Topic: row[5], MeetingURL: row[6], Status: row[7], UserName: row[8], UserEmail: row[9], Title: row[10], Theory: row[11], Homework: row[12], VideoURL: row[13], Published: row[14] == "1"}
+		lesson := StudyLesson{BookingID: row[0], UserID: row[1], Date: row[2], Time: row[3], EndTime: lessonEndTime(row[3]), DurationMinutes: lessonDurationMinutes, Timezone: row[4], Topic: row[5], MeetingURL: row[6], Status: row[7], UserName: row[8], UserEmail: row[9], Title: row[10], Theory: row[11], Homework: row[12], VideoURL: row[13], Published: row[14] == "1"}
 		if ts := parseInt64(row[15]); ts > 0 {
 			lesson.PublishedAt = time.Unix(ts, 0).In(loc)
 		}

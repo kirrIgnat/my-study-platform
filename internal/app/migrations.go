@@ -102,6 +102,14 @@ func migrateStudyDB(db *AppDB) error {
 		`CREATE INDEX IF NOT EXISTS bookings_user_week_idx ON bookings(user_id, week_key, status)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS bookings_schedule_occurrence_unique
             ON bookings(schedule_id,occurrence_key) WHERE schedule_id<>''`,
+		`CREATE TABLE IF NOT EXISTS booking_suppressions (
+            schedule_id TEXT NOT NULL REFERENCES tutoring_schedules(id) ON DELETE CASCADE,
+            occurrence_key TEXT NOT NULL,
+            created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            created_at BIGINT NOT NULL,
+            PRIMARY KEY(schedule_id, occurrence_key)
+        )`,
+		`CREATE INDEX IF NOT EXISTS booking_suppressions_created_idx ON booking_suppressions(created_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS reschedule_requests (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -234,7 +242,10 @@ func migrateStudyDB(db *AppDB) error {
 		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 2, now); err != nil {
 			return err
 		}
-		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 3, now)
+		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 3, now); err != nil {
+			return err
+		}
+		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 4, now)
 	})
 }
 

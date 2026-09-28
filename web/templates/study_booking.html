@@ -2,13 +2,13 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+  <meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260928-slots-1">
 </head>
 <body class="study-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "study_nav" .}}
   <main class="study-main narrow-top booking-page">
     <section class="page-title split-title">
-      <div><span class="study-kicker">ПЕРСОНАЛЬНОЕ ОБУЧЕНИЕ</span><h1>Соберите своё недельное расписание</h1><p>Каждый выбранный слот закрепляется за вами еженедельно. Можно выбрать одно, два или больше занятий в неделю — если в расписании есть свободное время.</p></div>
+      <div><span class="study-kicker">ПЕРСОНАЛЬНОЕ ОБУЧЕНИЕ</span><h1>Соберите своё недельное расписание</h1><p>Каждый выбранный слот закрепляется за вами еженедельно. Вы выбираете только время начала, а занятие автоматически длится 1 час 30 минут. Можно выбрать одно, два или больше занятий в неделю — если в расписании есть свободное время.</p></div>
       <div class="timezone-chip" id="bookingTimezoneLabel">часовой пояс загружается…</div>
     </section>
 
@@ -17,7 +17,7 @@
     {{if and .User (eq .User.Role "student") .StudentSchedules}}
     <section class="study-panel current-schedules-panel">
       <div class="panel-head"><div><span class="panel-label">ВАШИ ПОСТОЯННЫЕ ЗАНЯТИЯ</span><h2>Сейчас закреплено: {{len .StudentSchedules}} в неделю</h2></div><a class="table-action" href="/study/account?tab=schedule">Открыть календарь →</a></div>
-      <div class="recurring-schedule-chips">{{range .StudentSchedules}}<div class="recurring-schedule-chip"><span>{{.WeekdayName}}</span><b>{{.Time}}</b><small>{{if .Topic}}{{.Topic}}{{else}}Персональное занятие{{end}}</small></div>{{end}}</div>
+      <div class="recurring-schedule-chips">{{range .StudentSchedules}}<div class="recurring-schedule-chip"><span>{{.WeekdayName}}</span><b>{{.Time}}–{{.EndTime}}</b><small>{{if .Topic}}{{.Topic}}{{else}}Персональное занятие{{end}}</small></div>{{end}}</div>
       <p class="panel-note">Ниже можно добавить ещё один свободный еженедельный слот. Уже закреплённые времена повторно выбрать нельзя.</p>
     </section>
     {{end}}
@@ -45,6 +45,6 @@
       </article>
     </section>
   </main>{{template "study_footer" .}}
-  <script src="/static/js/study_booking.js?v=20260913-4"></script>
+  <script src="/static/js/study_booking.js?v=20260928-slots-1"></script>
 </body>
 </html>

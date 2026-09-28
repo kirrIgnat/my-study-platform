@@ -17,7 +17,7 @@ func getUserSchedules(db *AppDB, userID string) ([]TutoringSchedule, error) {
 	result := make([]TutoringSchedule, 0, len(rows))
 	for _, r := range rows {
 		weekday := parseInt(r[2])
-		result = append(result, TutoringSchedule{ID: r[0], UserID: r[1], Weekday: weekday, WeekdayName: weekdayNameRU(weekday), Time: r[3], Timezone: r[4], Topic: r[5], MeetingURL: r[6], EffectiveFrom: r[7], Status: r[8], CreatedAt: time.Unix(parseInt64(r[9]), 0).UTC(), UpdatedAt: time.Unix(parseInt64(r[10]), 0).UTC()})
+		result = append(result, TutoringSchedule{ID: r[0], UserID: r[1], Weekday: weekday, WeekdayName: weekdayNameRU(weekday), Time: r[3], EndTime: lessonEndTime(r[3]), DurationMinutes: lessonDurationMinutes, Timezone: r[4], Topic: r[5], MeetingURL: r[6], EffectiveFrom: r[7], Status: r[8], CreatedAt: time.Unix(parseInt64(r[9]), 0).UTC(), UpdatedAt: time.Unix(parseInt64(r[10]), 0).UTC()})
 	}
 	return result, nil
 }
@@ -41,7 +41,7 @@ func getUserScheduleByID(db *AppDB, userID, scheduleID string) (*TutoringSchedul
 	}
 	r := rows[0]
 	weekday := parseInt(r[2])
-	return &TutoringSchedule{ID: r[0], UserID: r[1], Weekday: weekday, WeekdayName: weekdayNameRU(weekday), Time: r[3], Timezone: r[4], Topic: r[5], MeetingURL: r[6], EffectiveFrom: r[7], Status: r[8], CreatedAt: time.Unix(parseInt64(r[9]), 0).UTC(), UpdatedAt: time.Unix(parseInt64(r[10]), 0).UTC()}, nil
+	return &TutoringSchedule{ID: r[0], UserID: r[1], Weekday: weekday, WeekdayName: weekdayNameRU(weekday), Time: r[3], EndTime: lessonEndTime(r[3]), DurationMinutes: lessonDurationMinutes, Timezone: r[4], Topic: r[5], MeetingURL: r[6], EffectiveFrom: r[7], Status: r[8], CreatedAt: time.Unix(parseInt64(r[9]), 0).UTC(), UpdatedAt: time.Unix(parseInt64(r[10]), 0).UTC()}, nil
 }
 
 func listRecurringSlotOptions(db *AppDB, schedule map[time.Weekday][]string, loc *time.Location, userID, currentScheduleID string) ([]RecurringSlotOption, error) {
@@ -55,11 +55,6 @@ func listRecurringSlotOptions(db *AppDB, schedule map[time.Weekday][]string, loc
 	if err != nil {
 		return nil, err
 	}
-	type ownerInfo struct{ scheduleID, userID string }
-	occupied := map[string]ownerInfo{}
-	for _, row := range rows {
-		occupied[fmt.Sprintf("%s/%s", row[2], row[3])] = ownerInfo{scheduleID: row[0], userID: row[1]}
-	}
 	weekdays := make([]int, 0, len(schedule))
 	for wd := range schedule {
 		weekdays = append(weekdays, weekdayNumber(wd))
@@ -70,10 +65,21 @@ func listRecurringSlotOptions(db *AppDB, schedule map[time.Weekday][]string, loc
 		times := append([]string(nil), schedule[weekdayFromNumber(day)]...)
 		sort.Strings(times)
 		for _, clock := range times {
-			owner := occupied[fmt.Sprintf("%d/%s", day, clock)]
-			isCurrent := currentScheduleID != "" && owner.scheduleID == currentScheduleID
-			available := owner.scheduleID == "" || isCurrent
-			result = append(result, RecurringSlotOption{Weekday: day, WeekdayName: weekdayNameRU(day), Time: clock, Available: available, Current: isCurrent})
+			isCurrent := false
+			conflict := false
+			for _, row := range rows {
+				if row[0] == currentScheduleID {
+					if parseInt(row[2]) == day && row[3] == clock {
+						isCurrent = true
+					}
+					continue
+				}
+				if recurringSlotsOverlap(parseInt(row[2]), row[3], day, clock) {
+					conflict = true
+					break
+				}
+			}
+			result = append(result, RecurringSlotOption{Weekday: day, WeekdayName: weekdayNameRU(day), Time: clock, Available: !conflict, Current: isCurrent})
 		}
 	}
 	return result, nil
@@ -116,7 +122,7 @@ func listAdminBookings(db *AppDB, loc *time.Location) ([]StudyBooking, error) {
 
 func bookingFromRow(row []string, loc *time.Location) StudyBooking {
 	return StudyBooking{
-		ID: row[0], UserID: row[1], SlotStart: time.Unix(parseInt64(row[2]), 0).In(loc), Date: row[3], Time: row[4], Timezone: row[5],
+		ID: row[0], UserID: row[1], SlotStart: time.Unix(parseInt64(row[2]), 0).In(loc), Date: row[3], Time: row[4], EndTime: lessonEndTime(row[4]), DurationMinutes: lessonDurationMinutes, Timezone: row[5],
 		Topic: row[6], MeetingURL: row[7], WeekKey: row[8], Status: row[9], CreatedAt: time.Unix(parseInt64(row[10]), 0).UTC(),
 		ScheduleID: row[11], OccurrenceKey: row[12], OriginalDate: row[13], OriginalTime: row[14], Rescheduled: row[15] == "1",
 	}
@@ -153,12 +159,26 @@ func ensureRecurringBookings(db *AppDB, loc *time.Location, weeks int) error {
 			if err != nil || !slot.After(now) {
 				continue
 			}
+			weekKey := bookingWeekKey(date)
+			suppressed, err := db.Query(`SELECT 1 FROM booking_suppressions WHERE schedule_id=? AND occurrence_key=? LIMIT 1`, row[0], weekKey)
+			if err != nil {
+				return err
+			}
+			if len(suppressed) > 0 {
+				continue
+			}
+			busy, err := activeBookingAtSlot(db, slot.UTC().Unix(), "")
+			if err != nil {
+				return err
+			}
+			if busy {
+				continue
+			}
 			id, err := randomToken(12)
 			if err != nil {
 				return err
 			}
 			dateString := date.Format("2006-01-02")
-			weekKey := bookingWeekKey(date)
 			nowUnix := time.Now().UTC().Unix()
 			if err := db.Exec(`INSERT INTO bookings(id,user_id,slot_start,date,time,timezone,topic,meeting_url,week_key,status,created_at,updated_at,schedule_id,occurrence_key,original_date,original_time,rescheduled)
 				VALUES(?,?,?,?,?,?,?,?,?,'confirmed',?,?,?,?,?,?,0) ON CONFLICT DO NOTHING`, id, row[1], slot.UTC().Unix(), dateString, row[3], row[4], row[5], row[6], weekKey, nowUnix, nowUnix, row[0], weekKey, dateString, row[3]); err != nil {
@@ -220,7 +240,7 @@ func createRecurringSchedule(db *AppDB, user StudyUser, date, clock, topic, defa
 		return TutoringSchedule{}, err
 	}
 	now := time.Now().UTC()
-	schedule := TutoringSchedule{ID: id, UserID: user.ID, UserName: user.Name, UserEmail: user.Email, Weekday: weekday, WeekdayName: weekdayNameRU(weekday), Time: clock, Timezone: loc.String(), Topic: strings.TrimSpace(topic), MeetingURL: meetingURL, EffectiveFrom: date, Status: "active", CreatedAt: now, UpdatedAt: now}
+	schedule := TutoringSchedule{ID: id, UserID: user.ID, UserName: user.Name, UserEmail: user.Email, Weekday: weekday, WeekdayName: weekdayNameRU(weekday), Time: clock, EndTime: lessonEndTime(clock), DurationMinutes: lessonDurationMinutes, Timezone: loc.String(), Topic: strings.TrimSpace(topic), MeetingURL: meetingURL, EffectiveFrom: date, Status: "active", CreatedAt: now, UpdatedAt: now}
 	slot, _ := combineDateAndTime(parsedDate, clock, loc)
 	bookingID, err := randomToken(12)
 	if err != nil {
@@ -228,12 +248,22 @@ func createRecurringSchedule(db *AppDB, user StudyUser, date, clock, topic, defa
 	}
 	weekKey := bookingWeekKey(parsedDate)
 	err = db.WithTx(func(tx *dbTx) error {
-		rows, err := tx.query(`SELECT id FROM tutoring_schedules WHERE weekday=? AND time=? AND timezone=? AND status='active' LIMIT 1`, weekday, clock, loc.String())
+		rows, err := tx.query(`SELECT id,weekday,time FROM tutoring_schedules WHERE timezone=? AND status='active'`, loc.String())
 		if err != nil {
 			return err
 		}
-		if len(rows) > 0 {
-			return errStudyRecurringSlotBusy
+		for _, row := range rows {
+			if recurringSlotsOverlap(parseInt(row[1]), row[2], weekday, clock) {
+				return errStudyRecurringSlotBusy
+			}
+		}
+		durationSeconds := int64(lessonDuration / time.Second)
+		busyRows, err := tx.query(`SELECT id FROM bookings WHERE status IN ('pending','confirmed') AND slot_start>? AND slot_start<? LIMIT 1`, slot.UTC().Unix()-durationSeconds, slot.UTC().Unix()+durationSeconds)
+		if err != nil {
+			return err
+		}
+		if len(busyRows) > 0 {
+			return errStudySlotBusy
 		}
 		if err := tx.exec(`INSERT INTO tutoring_schedules(id,user_id,weekday,time,timezone,topic,meeting_url,effective_from,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,'active',?,?)`, schedule.ID, schedule.UserID, schedule.Weekday, schedule.Time, schedule.Timezone, schedule.Topic, schedule.MeetingURL, schedule.EffectiveFrom, now.Unix(), now.Unix()); err != nil {
 			if isDBConstraint(err) {
@@ -318,12 +348,14 @@ func requestPermanentReschedule(db *AppDB, user StudyUser, scheduleID string, we
 		if len(rows) > 0 {
 			return errRescheduleAlreadyPending
 		}
-		rows, err = tx.query(`SELECT id FROM tutoring_schedules WHERE weekday=? AND time=? AND timezone=? AND status='active' AND id<>? LIMIT 1`, weekday, clock, loc.String(), schedule.ID)
+		rows, err = tx.query(`SELECT id,weekday,time FROM tutoring_schedules WHERE timezone=? AND status='active' AND id<>?`, loc.String(), schedule.ID)
 		if err != nil {
 			return err
 		}
-		if len(rows) > 0 {
-			return errStudyRecurringSlotBusy
+		for _, row := range rows {
+			if recurringSlotsOverlap(parseInt(row[1]), row[2], weekday, clock) {
+				return errStudyRecurringSlotBusy
+			}
 		}
 		if err := tx.exec(`INSERT INTO reschedule_requests(id,user_id,schedule_id,kind,requested_weekday,requested_time,reason,status,created_at) VALUES(?,?,?,?,?,?,?,'pending',?)`, request.ID, user.ID, schedule.ID, "permanent", weekday, clock, reason, now.Unix()); err != nil {
 			if isDBConstraint(err) {
@@ -373,11 +405,20 @@ func getBookingForUser(db *AppDB, bookingID, userID string, loc *time.Location) 
 }
 
 func slotClaimedByRecurringSchedule(db *AppDB, weekday int, clock, timezone, excludeScheduleID string) (bool, error) {
-	rows, err := db.Query(`SELECT id FROM tutoring_schedules WHERE weekday=? AND time=? AND timezone=? AND status='active' AND id<>? LIMIT 1`, weekday, clock, timezone, excludeScheduleID)
-	return len(rows) > 0, err
+	rows, err := db.Query(`SELECT id,weekday,time FROM tutoring_schedules WHERE timezone=? AND status='active' AND id<>?`, timezone, excludeScheduleID)
+	if err != nil {
+		return false, err
+	}
+	for _, row := range rows {
+		if recurringSlotsOverlap(parseInt(row[1]), row[2], weekday, clock) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func activeBookingAtSlot(db *AppDB, unix int64, excludeBookingID string) (bool, error) {
-	rows, err := db.Query(`SELECT id FROM bookings WHERE slot_start=? AND status IN ('pending','confirmed') AND id<>? LIMIT 1`, unix, excludeBookingID)
+	durationSeconds := int64(lessonDuration / time.Second)
+	rows, err := db.Query(`SELECT id FROM bookings WHERE status IN ('pending','confirmed') AND id<>? AND slot_start>? AND slot_start<? LIMIT 1`, excludeBookingID, unix-durationSeconds, unix+durationSeconds)
 	return len(rows) > 0, err
 }

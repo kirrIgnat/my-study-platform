@@ -2,25 +2,31 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260919-tests-1">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-slots-1">
 </head>
 <body class="study-body admin-body cabinet-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
   <main class="study-main cabinet-main lesson-cabinet-main">
-    <section class="page-title lesson-admin-title"><div><a class="back-link" href="/study/admin?tab=schedule">← Все занятия</a><span class="study-kicker">УРОК · {{.Lesson.Date}} · {{.Lesson.Time}}</span><h1>{{.Lesson.UserName}}</h1><p>{{.Lesson.UserEmail}}{{if .Lesson.Topic}} · {{.Lesson.Topic}}{{end}}</p></div><span class="status-pill {{.Lesson.Status}}">{{.Lesson.Status}}</span></section>
+    <section class="page-title lesson-admin-title"><div><a class="back-link" href="/study/admin?tab=schedule">← Все занятия</a><span class="study-kicker">УРОК · {{.Lesson.Date}} · {{.Lesson.Time}}–{{.Lesson.EndTime}} · 90 МИН</span><h1>{{.Lesson.UserName}}</h1><p>{{.Lesson.UserEmail}}{{if .Lesson.Topic}} · {{.Lesson.Topic}}{{end}}</p></div><span class="status-pill {{.Lesson.Status}}">{{.Lesson.Status}}</span></section>
 
     {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}
     {{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
 
     <section class="lesson-admin-grid">
-      <article class="study-panel">
-        <div class="panel-head"><div><span class="panel-label">ДО ЗАНЯТИЯ</span><h2>Статус и конференция</h2></div></div>
+      <article class="study-panel lesson-control-panel">
+        <div class="panel-head"><div><span class="panel-label">УПРАВЛЕНИЕ ЗАНЯТИЕМ</span><h2>Время, статус и конференция</h2></div><span class="lesson-duration-badge">1 ч 30 мин</span></div>
         <form class="study-form" method="post" action="/study/admin/booking/update">
           <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}">
+          <div class="lesson-time-edit-grid"><label><span>Дата занятия</span><input type="date" name="date" value="{{.Lesson.Date}}" required></label><label><span>Начало</span><input type="time" name="time" value="{{.Lesson.Time}}" step="1800" required><small>Конец рассчитывается автоматически: + 1 час 30 минут. Для переноса начало должно быть в ваших доступных слотах.</small></label></div>
+          <div class="lesson-auto-end"><span>Текущее время</span><b>{{.Lesson.Time}}–{{.Lesson.EndTime}}</b></div>
           <label><span>Статус</span><select name="status"><option value="pending" {{if eq .Lesson.Status "pending"}}selected{{end}}>Ожидает подтверждения</option><option value="confirmed" {{if eq .Lesson.Status "confirmed"}}selected{{end}}>Подтверждено</option><option value="done" {{if eq .Lesson.Status "done"}}selected{{end}}>Проведено</option><option value="cancelled" {{if eq .Lesson.Status "cancelled"}}selected{{end}}>Отменено</option></select></label>
-          <label><span>Ссылка на конференцию</span><input type="url" name="meeting_url" maxlength="2048" value="{{.Lesson.MeetingURL}}" placeholder="https://meet.google.com/..." autocomplete="off"><small>После сохранения ссылка сразу появится в кабинете ученика.</small></label>
-          <button class="study-button secondary wide" type="submit">Сохранить расписание</button>
+          <label><span>Ссылка на конференцию</span><input type="url" name="meeting_url" maxlength="2048" value="{{.Lesson.MeetingURL}}" placeholder="https://meet.google.com/..." autocomplete="off"><small>После сохранения изменения сразу появятся в кабинете ученика.</small></label>
+          <button class="study-button primary wide" type="submit">Сохранить / перенести занятие</button>
         </form>
+        <div class="lesson-danger-actions">
+          {{if ne .Lesson.Status "cancelled"}}<form method="post" action="/study/admin/bookings/status" data-confirm="Отменить это занятие? Оно останется в истории ученика со статусом «Отменено»."><input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}"><input type="hidden" name="status" value="cancelled"><button class="study-button danger-outline" type="submit">Отменить занятие</button></form>{{end}}
+          <form method="post" action="/study/admin/booking/delete" data-confirm="{{if .Lesson.ScheduleID}}Удалить это занятие и ВСЕ последующие занятия этого регулярного слота? Прошедшие занятия останутся в истории, а постоянный слот будет остановлен.{{else}}Удалить это занятие безвозвратно? Материалы этого занятия тоже будут удалены.{{end}}"><input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}"><button class="study-button danger" type="submit">{{if .Lesson.ScheduleID}}Удалить это и последующие{{else}}Удалить занятие{{end}}</button></form>
+        </div>
       </article>
 
       <article class="study-panel lesson-publish-panel">
@@ -53,5 +59,6 @@
       </div>
     </section>
   </main>{{template "study_footer" .}}
+  <script src="/static/js/study_admin_lesson.js?v=20260928-1"></script>
 </body>
 </html>

@@ -1405,3 +1405,18 @@ label.test-option:has(input:checked) { border-color: rgba(118,209,197,.38); back
 .test-review-note { margin: 0 0 14px; padding: 16px 18px; border-left: 2px solid var(--study-accent-2); }
 .test-review-note b { font-size: 12px; }
 .test-review-note p { margin: 6px 0 0; color: var(--study-muted); font-size: 12px; line-height: 1.6; }
+
+/* Lesson scheduling controls: fixed 90-minute duration */
+.lesson-duration-badge { padding: 6px 9px; border: 1px solid rgba(118,209,197,.2); border-radius: 999px; color: var(--study-accent); background: rgba(118,209,197,.05); font: 800 9px ui-monospace, monospace; letter-spacing: .06em; white-space: nowrap; }
+.lesson-time-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lesson-auto-end { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--study-line); border-radius: 10px; background: rgba(255,255,255,.018); }
+.lesson-auto-end span { color: var(--study-muted); font-size: 10px; }
+.lesson-auto-end b { color: var(--study-accent-2); font: 800 12px ui-monospace, monospace; }
+.lesson-danger-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,141,145,.14); }
+.lesson-danger-actions form { margin: 0; }
+.study-button.danger, .study-button.danger-outline { width: 100%; }
+.study-button.danger { border-color: rgba(255,141,145,.34); background: rgba(255,141,145,.12); color: #ffc2c4; }
+.study-button.danger:hover { border-color: rgba(255,141,145,.55); background: rgba(255,141,145,.18); }
+.study-button.danger-outline { border-color: rgba(255,141,145,.2); background: transparent; color: var(--study-danger); }
+.study-button.danger-outline:hover { border-color: rgba(255,141,145,.4); background: rgba(255,141,145,.05); }
+@media (max-width: 620px) { .lesson-time-edit-grid, .lesson-danger-actions { grid-template-columns: 1fr; } }

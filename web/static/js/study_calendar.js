@@ -48,9 +48,9 @@
         const titleText = event.topic || 'Персональное занятие';
         const student = role === 'admin' && event.user_name ? `<small>${escapeHTML(event.user_name)}</small>` : '';
         const action = role === 'admin'
-          ? `<a href="/study/admin/lesson?id=${encodeURIComponent(event.id)}">Материалы / ДЗ →</a>`
+          ? `<a href="/study/admin/lesson?id=${encodeURIComponent(event.id)}">Управлять занятием →</a>`
           : (event.meeting_url ? `<a href="${escapeHTML(event.meeting_url)}" target="_blank" rel="noopener noreferrer">Войти в конференцию ↗</a>` : '<span>Ссылка появится позже</span>');
-        return `<article class="calendar-event ${escapeHTML(event.status)}"><time>${escapeHTML(event.time)}</time><div><b>${escapeHTML(titleText)}</b>${student}<em>${escapeHTML(event.status)}${event.rescheduled ? ' · перенесено' : ''}</em></div>${action}</article>`;
+        return `<article class="calendar-event ${escapeHTML(event.status)}"><time>${escapeHTML(event.time)}${event.end_time ? `–${escapeHTML(event.end_time)}` : ''}</time><div><b>${escapeHTML(titleText)}</b>${student}<em>${escapeHTML(event.status)}${event.rescheduled ? ' · перенесено' : ''}</em></div>${action}</article>`;
       }).join('')}</div>`;
     };
 

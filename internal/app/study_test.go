@@ -30,7 +30,7 @@ func newTestDB(t *testing.T) (*AppDB, *AuthService) {
 }
 
 func resetTestDatabase(db *AppDB) error {
-	return db.Exec(`TRUNCATE TABLE password_reset_events, lesson_materials, notifications, reschedule_requests, bookings, tutoring_schedules, enrollments, courses, sessions, student_profiles, users CASCADE`)
+	return db.Exec(`TRUNCATE TABLE password_reset_events, lesson_materials, notifications, reschedule_requests, booking_suppressions, bookings, tutoring_schedules, enrollments, courses, sessions, student_profiles, users CASCADE`)
 }
 
 func futureWeekday(loc *time.Location, weekday time.Weekday, weeksAhead int) time.Time {
@@ -78,6 +78,21 @@ func TestPasswordHashUpgradeDetection(t *testing.T) {
 	}
 	if passwordHashNeedsUpgrade(hash) {
 		t.Fatal("current password hash should not require upgrade")
+	}
+}
+
+func TestLessonDurationAndOverlap(t *testing.T) {
+	if got := lessonEndTime("18:00"); got != "19:30" {
+		t.Fatalf("lesson end = %s, want 19:30", got)
+	}
+	if !recurringSlotsOverlap(2, "18:00", 2, "19:00") {
+		t.Fatal("18:00-19:30 must overlap 19:00-20:30")
+	}
+	if recurringSlotsOverlap(2, "18:00", 2, "19:30") {
+		t.Fatal("adjacent 90-minute lessons must not overlap")
+	}
+	if !recurringSlotsOverlap(7, "23:30", 1, "00:30") {
+		t.Fatal("weekly overlap across Sunday/Monday boundary was not detected")
 	}
 }
 

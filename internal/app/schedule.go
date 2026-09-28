@@ -14,6 +14,8 @@ const (
 	defaultBookingTimezone = "Europe/Moscow"
 	defaultBookingDays     = 45
 	maxBookingDays         = 62
+	lessonDurationMinutes  = 90
+	lessonDuration         = 90 * time.Minute
 )
 
 var defaultLessonSchedule = map[time.Weekday][]string{
@@ -24,6 +26,7 @@ var defaultLessonSchedule = map[time.Weekday][]string{
 
 type StudySlot struct {
 	Time      string `json:"time"`
+	EndTime   string `json:"end_time"`
 	Available bool   `json:"available"`
 }
 
@@ -111,6 +114,82 @@ func combineDateAndTime(date time.Time, clock string, loc *time.Location) (time.
 	return time.Date(date.Year(), date.Month(), date.Day(), parsed.Hour(), parsed.Minute(), 0, 0, loc), nil
 }
 
+func lessonEndTime(clock string) string {
+	parsed, err := time.Parse("15:04", clock)
+	if err != nil {
+		return ""
+	}
+	return parsed.Add(lessonDuration).Format("15:04")
+}
+
+func lessonIntervalsOverlap(a, b time.Time) bool {
+	return a.Before(b.Add(lessonDuration)) && b.Before(a.Add(lessonDuration))
+}
+
+func bookedStartsConflict(starts []int64, candidate time.Time) bool {
+	for _, unix := range starts {
+		if lessonIntervalsOverlap(time.Unix(unix, 0), candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+type recurringOccupiedSlot struct {
+	ScheduleID string
+	UserID     string
+	Weekday    int
+	Time       string
+}
+
+func recurringSlotMinute(weekday int, clock string) (int, error) {
+	parsed, err := time.Parse("15:04", clock)
+	if err != nil || weekday < 1 || weekday > 7 {
+		return 0, errors.New("invalid recurring slot")
+	}
+	return (weekday-1)*24*60 + parsed.Hour()*60 + parsed.Minute(), nil
+}
+
+func recurringSlotsOverlap(weekdayA int, clockA string, weekdayB int, clockB string) bool {
+	a, errA := recurringSlotMinute(weekdayA, clockA)
+	b, errB := recurringSlotMinute(weekdayB, clockB)
+	if errA != nil || errB != nil {
+		return false
+	}
+	duration := lessonDurationMinutes
+	week := 7 * 24 * 60
+	for _, shiftedB := range []int{b - week, b, b + week} {
+		if a < shiftedB+duration && shiftedB < a+duration {
+			return true
+		}
+	}
+	return false
+}
+
+func recurringOccupiedSlots(db *AppDB, loc *time.Location) ([]recurringOccupiedSlot, error) {
+	rows, err := db.Query(`SELECT id,user_id,weekday,time FROM tutoring_schedules WHERE status='active' AND timezone=?`, loc.String())
+	if err != nil {
+		return nil, err
+	}
+	result := make([]recurringOccupiedSlot, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, recurringOccupiedSlot{ScheduleID: row[0], UserID: row[1], Weekday: parseInt(row[2]), Time: row[3]})
+	}
+	return result, nil
+}
+
+func recurringConflict(slots []recurringOccupiedSlot, weekday int, clock, excludeScheduleID string) bool {
+	for _, slot := range slots {
+		if slot.ScheduleID == excludeScheduleID {
+			continue
+		}
+		if recurringSlotsOverlap(slot.Weekday, slot.Time, weekday, clock) {
+			return true
+		}
+	}
+	return false
+}
+
 func validateStudySlot(dateString, clock string, loc *time.Location, schedule map[time.Weekday][]string) error {
 	date, err := time.ParseInLocation("2006-01-02", dateString, loc)
 	if err != nil {
@@ -142,26 +221,14 @@ func validateStudySlot(dateString, clock string, loc *time.Location, schedule ma
 	return nil
 }
 
-func recurringOccupiedMap(db *AppDB, loc *time.Location) (map[string]string, error) {
-	rows, err := db.Query(`SELECT user_id,weekday,time FROM tutoring_schedules WHERE status='active' AND timezone=?`, loc.String())
+func activeBookedStarts(db *AppDB, excludeBookingID string) ([]int64, error) {
+	rows, err := db.Query(`SELECT slot_start FROM bookings WHERE status IN ('pending','confirmed') AND slot_start >= ? AND id<>?`, time.Now().UTC().Add(-lessonDuration).Unix(), excludeBookingID)
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]string, len(rows))
+	result := make([]int64, 0, len(rows))
 	for _, row := range rows {
-		result[row[1]+"/"+row[2]] = row[0]
-	}
-	return result, nil
-}
-
-func activeBookedSlots(db *AppDB, excludeBookingID string) (map[int64]struct{}, error) {
-	rows, err := db.Query(`SELECT slot_start FROM bookings WHERE status IN ('pending','confirmed') AND slot_start >= ? AND id<>?`, time.Now().UTC().Unix(), excludeBookingID)
-	if err != nil {
-		return nil, err
-	}
-	result := make(map[int64]struct{}, len(rows))
-	for _, row := range rows {
-		result[parseInt64(row[0])] = struct{}{}
+		result = append(result, parseInt64(row[0]))
 	}
 	return result, nil
 }
@@ -173,11 +240,11 @@ func studyAvailability(db *AppDB, loc *time.Location, schedule map[time.Weekday]
 	if days > maxBookingDays {
 		days = maxBookingDays
 	}
-	booked, err := activeBookedSlots(db, "")
+	booked, err := activeBookedStarts(db, "")
 	if err != nil {
 		return StudyAvailabilityResponse{}, err
 	}
-	recurring, err := recurringOccupiedMap(db, loc)
+	recurring, err := recurringOccupiedSlots(db, loc)
 	if err != nil {
 		return StudyAvailabilityResponse{}, err
 	}
@@ -204,9 +271,9 @@ func studyAvailability(db *AppDB, loc *time.Location, schedule map[time.Weekday]
 			if err != nil {
 				continue
 			}
-			_, taken := booked[slotTime.UTC().Unix()]
-			_, permanentlyTaken := recurring[strconv.Itoa(weekdayNumber(date.Weekday()))+"/"+clock]
-			day.Slots = append(day.Slots, StudySlot{Time: clock, Available: !permanentlyTaken && !taken && slotTime.After(now.Add(2*time.Hour))})
+			taken := bookedStartsConflict(booked, slotTime)
+			permanentlyTaken := recurringConflict(recurring, weekdayNumber(date.Weekday()), clock, "")
+			day.Slots = append(day.Slots, StudySlot{Time: clock, EndTime: lessonEndTime(clock), Available: !permanentlyTaken && !taken && slotTime.After(now.Add(2*time.Hour))})
 		}
 		response.Days = append(response.Days, day)
 	}
@@ -230,11 +297,11 @@ func rescheduleAvailability(db *AppDB, loc *time.Location, schedule map[time.Wee
 	if remaining < 0 {
 		remaining = 0
 	}
-	booked, err := activeBookedSlots(db, bookingID)
+	booked, err := activeBookedStarts(db, bookingID)
 	if err != nil {
 		return StudyAvailabilityResponse{}, err
 	}
-	recurring, err := recurringOccupiedMap(db, loc)
+	recurring, err := recurringOccupiedSlots(db, loc)
 	if err != nil {
 		return StudyAvailabilityResponse{}, err
 	}
@@ -253,12 +320,11 @@ func rescheduleAvailability(db *AppDB, loc *time.Location, schedule map[time.Wee
 		day := StudyAvailabilityDay{Date: date.Format("2006-01-02"), Slots: make([]StudySlot, 0, len(scheduled))}
 		for _, clock := range scheduled {
 			slot, _ := combineDateAndTime(date, clock, loc)
-			_, busy := booked[slot.UTC().Unix()]
-			owner := recurring[strconv.Itoa(weekdayNumber(date.Weekday()))+"/"+clock]
-			permanentlyTaken := owner != ""
+			busy := bookedStartsConflict(booked, slot)
+			permanentlyTaken := recurringConflict(recurring, weekdayNumber(date.Weekday()), clock, booking.ScheduleID)
 			isSame := slot.UTC().Unix() == booking.SlotStart.UTC().Unix()
 			available := remaining > 0 && !busy && !permanentlyTaken && !isSame && slot.After(now.Add(2*time.Hour))
-			day.Slots = append(day.Slots, StudySlot{Time: clock, Available: available})
+			day.Slots = append(day.Slots, StudySlot{Time: clock, EndTime: lessonEndTime(clock), Available: available})
 		}
 		response.Days = append(response.Days, day)
 	}

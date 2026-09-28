@@ -53,6 +53,12 @@ if (bookingRoot) {
     return `Часовой пояс · ${value}`;
   }
 
+  function endTimeFor(start) {
+    const [hour, minute] = start.split(':').map(Number);
+    const total = hour * 60 + minute + 90;
+    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+
   function hasAvailableSlots(day) {
     return day && day.slots.some((slot) => slot.available);
   }
@@ -121,7 +127,7 @@ if (bookingRoot) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'slot-button';
-      button.textContent = slot.time;
+      button.textContent = `${slot.time}–${slot.end_time || endTimeFor(slot.time)}`;
       if (slot.time === selectedTime) button.classList.add('selected');
       button.addEventListener('click', () => {
         selectedTime = slot.time;
@@ -134,7 +140,9 @@ if (bookingRoot) {
 
   function updateSelection() {
     if (selectedDate && selectedTime) {
-      bookingSelection.textContent = `${humanDate(selectedDate)} · ${selectedTime}`;
+      const selectedSlot = availability.get(selectedDate)?.slots.find((slot) => slot.time === selectedTime);
+      const timeRange = `${selectedTime}–${selectedSlot?.end_time || endTimeFor(selectedTime)}`;
+      bookingSelection.textContent = `${humanDate(selectedDate)} · ${timeRange}`;
       if (bookingSubmit) bookingSubmit.disabled = submitting;
       if (bookingStatus && !submitting) bookingStatus.textContent = timezone ? `${timezoneText(timezone)} · слот будет повторяться каждую неделю` : 'Можно закрепить постоянный слот.';
       return;
@@ -243,7 +251,9 @@ if (bookingRoot) {
         document.getElementById('bookingTopic').value = '';
         selectedTime = '';
         await loadAvailability({ keepSelection: true });
-        bookingStatus.textContent = `Готово: ${humanDate(bookedDate)} в ${bookedTime}. Новый еженедельный слот добавлен. При желании можно выбрать ещё один.`;
+        const bookedSlot = availability.get(bookedDate)?.slots.find((slot) => slot.time === bookedTime);
+        const bookedRange = `${bookedTime}–${bookedSlot?.end_time || endTimeFor(bookedTime)}`;
+        bookingStatus.textContent = `Готово: ${humanDate(bookedDate)} · ${bookedRange}. Новый еженедельный слот добавлен.`;
         bookingStatus.classList.add('success');
       } catch (error) {
         await loadAvailability({ keepSelection: true });
