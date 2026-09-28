@@ -150,6 +150,61 @@ func migrateStudyDB(db *AppDB) error {
             updated_at BIGINT NOT NULL
         )`,
 		`CREATE INDEX IF NOT EXISTS lesson_materials_published_idx ON lesson_materials(published, published_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS test_templates (
+            id TEXT PRIMARY KEY,
+            slug TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            duration_minutes INTEGER NOT NULL DEFAULT 20 CHECK(duration_minutes BETWEEN 1 AND 480),
+            status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('draft','active','archived')),
+            created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            created_at BIGINT NOT NULL,
+            updated_at BIGINT NOT NULL
+        )`,
+		`CREATE TABLE IF NOT EXISTS test_questions (
+            id TEXT PRIMARY KEY,
+            test_id TEXT NOT NULL REFERENCES test_templates(id) ON DELETE CASCADE,
+            sort_order INTEGER NOT NULL,
+            section TEXT NOT NULL DEFAULT '',
+            prompt TEXT NOT NULL,
+            code TEXT NOT NULL DEFAULT '',
+            kind TEXT NOT NULL CHECK(kind IN ('single','multiple','survey_single','survey_multiple')),
+            options_json TEXT NOT NULL,
+            correct_json TEXT NOT NULL DEFAULT '[]',
+            explanation TEXT NOT NULL DEFAULT '',
+            category TEXT NOT NULL DEFAULT '',
+            scored INTEGER NOT NULL DEFAULT 1 CHECK(scored IN (0,1))
+        )`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS test_questions_order_unique ON test_questions(test_id,sort_order)`,
+		`CREATE TABLE IF NOT EXISTS test_assignments (
+            id TEXT PRIMARY KEY,
+            test_id TEXT NOT NULL REFERENCES test_templates(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            booking_id TEXT REFERENCES bookings(id) ON DELETE SET NULL,
+            attach_mode TEXT NOT NULL DEFAULT 'direct' CHECK(attach_mode IN ('direct','lesson','homework')),
+            time_limit_minutes INTEGER NOT NULL CHECK(time_limit_minutes BETWEEN 1 AND 480),
+            deadline_at BIGINT,
+            assigned_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+            status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','revoked')),
+            created_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS test_assignments_user_idx ON test_assignments(user_id,status,created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS test_assignments_booking_idx ON test_assignments(booking_id,created_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS test_attempts (
+            id TEXT PRIMARY KEY,
+            assignment_id TEXT NOT NULL UNIQUE REFERENCES test_assignments(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            status TEXT NOT NULL CHECK(status IN ('in_progress','submitted','expired')),
+            started_at BIGINT NOT NULL,
+            expires_at BIGINT,
+            submitted_at BIGINT,
+            answers_json TEXT NOT NULL DEFAULT '{}',
+            result_json TEXT NOT NULL DEFAULT '{}',
+            score INTEGER NOT NULL DEFAULT 0,
+            max_score INTEGER NOT NULL DEFAULT 0,
+            updated_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS test_attempts_user_idx ON test_attempts(user_id,status,updated_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS password_reset_events (
             id TEXT PRIMARY KEY,
             admin_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -170,10 +225,16 @@ func migrateStudyDB(db *AppDB) error {
 			return err
 		}
 		now := time.Now().UTC().Unix()
+		if err := seedDiagnosticTest(tx, now); err != nil {
+			return fmt.Errorf("seed diagnostic test: %w", err)
+		}
 		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 1, now); err != nil {
 			return err
 		}
-		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 2, now)
+		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 2, now); err != nil {
+			return err
+		}
+		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 3, now)
 	})
 }
 

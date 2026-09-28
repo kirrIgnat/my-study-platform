@@ -41,7 +41,18 @@ func (s *StudyApp) studentAccountData(w http.ResponseWriter, r *http.Request, se
 	if err != nil {
 		log.Printf("account bookings: %v", err)
 	}
+	lessons, lessonErr := listPublishedLessonsForStudent(s.db, session.User.ID, s.loc)
+	if lessonErr != nil {
+		log.Printf("account lessons: %v", lessonErr)
+	}
+	assignments, assignmentErr := listStudentTestAssignments(s.db, session.User.ID, s.loc)
+	if assignmentErr != nil {
+		log.Printf("account tests: %v", assignmentErr)
+	}
+	bookings, lessons = attachTestsToStudentData(bookings, lessons, assignments)
 	data.Bookings = bookings
+	data.Lessons = lessons
+	data.TestAssignments = assignments
 	now := time.Now().In(s.loc)
 	for _, booking := range bookings {
 		if booking.Status != "cancelled" && booking.Status != "done" && booking.SlotStart.After(now) {
@@ -53,7 +64,6 @@ func (s *StudyApp) studentAccountData(w http.ResponseWriter, r *http.Request, se
 	sort.Slice(data.UpcomingBookings, func(i, j int) bool {
 		return data.UpcomingBookings[i].SlotStart.Before(data.UpcomingBookings[j].SlotStart)
 	})
-	data.Lessons, _ = listPublishedLessonsForStudent(s.db, session.User.ID, s.loc)
 	data.RescheduleRequests, _ = listRescheduleRequestsForUser(s.db, session.User.ID, s.loc)
 	data.Notifications, _ = listNotifications(s.db, session.User.ID)
 	if len(data.Notifications) > 5 {

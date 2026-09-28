@@ -194,3 +194,13 @@ func postgresPlaceholders(query string) string {
 	}
 	return b.String()
 }
+
+// exec and query let AppDB satisfy dbExecutor alongside dbTx.
+// They keep store helpers usable both inside and outside explicit transactions.
+func (db *AppDB) exec(query string, args ...any) error {
+	return db.Exec(query, args...)
+}
+
+func (db *AppDB) query(query string, args ...any) ([][]string, error) {
+	return db.Query(query, args...)
+}

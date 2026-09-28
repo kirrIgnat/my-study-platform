@@ -75,6 +75,7 @@ func (s *StudyApp) adminBookingUpdate(w http.ResponseWriter, r *http.Request) {
 		data.CabinetTab = "schedule"
 		data.Error = err.Error()
 		data.Lesson, _ = getAdminLesson(s.db, bookingID, s.loc)
+		s.populateAdminLessonTests(&data, bookingID)
 		renderStudy(w, "study_admin_lesson.html", data)
 		return
 	}
@@ -94,6 +95,7 @@ func (s *StudyApp) adminLesson(w http.ResponseWriter, r *http.Request) {
 	data := s.baseData(w, r, "Занятие — KIRILL.STUDY", "admin")
 	data.CabinetTab = "schedule"
 	data.Lesson = lesson
+	s.populateAdminLessonTests(&data, bookingID)
 	switch r.URL.Query().Get("saved") {
 	case "schedule":
 		data.Success = "Параметры занятия сохранены. Ученик получил уведомление об изменениях."
@@ -101,6 +103,8 @@ func (s *StudyApp) adminLesson(w http.ResponseWriter, r *http.Request) {
 		data.Success = "Материалы сохранены как черновик."
 	case "published":
 		data.Success = "Материалы опубликованы. Ученик получил уведомление о новом ДЗ/материалах."
+	case "test":
+		data.Success = "Тест прикреплён к занятию. Ученик получил уведомление."
 	}
 	renderStudy(w, "study_admin_lesson.html", data)
 }
@@ -133,6 +137,7 @@ func (s *StudyApp) adminLessonSave(w http.ResponseWriter, r *http.Request) {
 		data.Error = err.Error()
 		data.Lesson = current
 		data.Lesson.Title, data.Lesson.Theory, data.Lesson.Homework, data.Lesson.VideoURL = r.FormValue("title"), r.FormValue("theory"), r.FormValue("homework"), r.FormValue("video_url")
+		s.populateAdminLessonTests(&data, bookingID)
 		renderStudy(w, "study_admin_lesson.html", data)
 		return
 	}

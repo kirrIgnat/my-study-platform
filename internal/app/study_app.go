@@ -33,6 +33,16 @@ type StudyPageData struct {
 	StudentSchedules   []TutoringSchedule
 	RescheduleRequests []RescheduleRequest
 	PendingReschedules []RescheduleRequest
+	TestTemplates      []TestTemplate
+	TestTemplate       TestTemplate
+	TestAssignments    []TestAssignment
+	TestAssignment     TestAssignment
+	TestAttempt        TestAttempt
+	TestQuestions      []TestQuestionView
+	TestBreakdown      []TestBreakdown
+	TestStarted        bool
+	TestFinished       bool
+	TestAdminView      bool
 }
 
 type StudyApp struct {
@@ -71,6 +81,14 @@ func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/study/admin/lesson/save", s.adminLessonSave)
 	mux.HandleFunc("/study/admin/students/password-reset", s.adminResetStudentPassword)
 	mux.HandleFunc("/study/admin/reschedule/resolve", s.adminResolveReschedule)
+	mux.HandleFunc("/study/admin/tests", s.adminTests)
+	mux.HandleFunc("/study/admin/tests/view", s.adminTestView)
+	mux.HandleFunc("/study/admin/tests/assign", s.adminTestAssign)
+	mux.HandleFunc("/study/admin/tests/result", s.adminTestResult)
+	mux.HandleFunc("/study/test", s.studyTest)
+	mux.HandleFunc("/study/test/start", s.studyTestStart)
+	mux.HandleFunc("/study/test/save", s.studyTestSave)
+	mux.HandleFunc("/study/test/submit", s.studyTestSubmit)
 	mux.HandleFunc("/api/study/availability", s.availabilityAPI)
 	mux.HandleFunc("/api/study/bookings", s.bookingAPI)
 	mux.HandleFunc("/api/study/recurring-slots", s.recurringSlotsAPI)

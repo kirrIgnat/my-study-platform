@@ -64,7 +64,7 @@ func normalizeCabinetTab(raw, role string) string {
 	raw = strings.ToLower(strings.TrimSpace(raw))
 	allowed := map[string]bool{}
 	if role == "admin" {
-		allowed = map[string]bool{"overview": true, "schedule": true, "transfers": true, "students": true}
+		allowed = map[string]bool{"overview": true, "schedule": true, "transfers": true, "students": true, "tests": true}
 	} else {
 		allowed = map[string]bool{"overview": true, "schedule": true, "materials": true, "transfers": true, "security": true}
 	}

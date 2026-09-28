@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260913-4">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260919-tests-1">
 </head>
 <body class="study-body admin-body cabinet-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
@@ -35,6 +35,22 @@
           <p class="panel-note">При публикации занятие автоматически получает статус <b>done</b>, а материал появляется в личном кабинете ученика.</p>
         </form>
       </article>
+    </section>
+
+    <section class="study-panel lesson-test-panel">
+      <div class="panel-head"><div><span class="panel-label">ТЕСТ / ЗАДАНИЕ</span><h2>Прикрепить тест к занятию</h2></div><span class="counter">{{len .TestAssignments}}</span></div>
+      <div class="lesson-test-layout">
+        <form class="study-form lesson-test-form" method="post" action="/study/admin/tests/assign">
+          <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="student_id" value="{{.Lesson.UserID}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}">
+          <label><span>Тест</span><select name="test_id" required><option value="">Выберите шаблон</option>{{range .TestTemplates}}<option value="{{.ID}}">{{.Title}}</option>{{end}}</select></label>
+          <label><span>Куда прикрепить</span><select name="attach_mode"><option value="lesson">На занятие — кнопка в расписании</option><option value="homework">Как ДЗ — в материалах урока</option></select></label>
+          <div class="lesson-test-form-row"><label><span>Время, минут</span><input type="number" name="time_limit_minutes" min="1" max="480" value="20" required></label><label><span>Дедлайн <small>необязательно</small></span><input type="datetime-local" name="deadline"></label></div>
+          <button class="study-button primary" type="submit">Выдать ученику</button>
+        </form>
+        <div class="lesson-test-current">
+          {{if .TestAssignments}}{{range .TestAssignments}}<article><div><b>{{.TestTitle}}</b><span>{{if eq .AttachMode "homework"}}Домашнее задание{{else}}На занятии{{end}} · {{.TimeLimitMinutes}} мин{{if .HasDeadline}} · до {{.DeadlineAt.Format "02.01 15:04"}}{{end}}</span></div><div>{{if eq .AttemptStatus "submitted"}}<span class="status-pill done">{{.Score}}/{{.MaxScore}}</span><a class="table-action" href="/study/admin/tests/result?id={{.ID}}">Результат →</a>{{else if eq .AttemptStatus "expired"}}<span class="status-pill cancelled">время истекло</span>{{if .HasAttempt}}<a class="table-action" href="/study/admin/tests/result?id={{.ID}}">Результат →</a>{{end}}{{else if eq .AttemptStatus "in_progress"}}<span class="status-pill pending">в процессе</span><a class="table-action" href="/study/admin/tests/result?id={{.ID}}">Статус →</a>{{else}}<span class="status-pill pending">не начат</span>{{end}}</div></article>{{end}}{{else}}<div class="empty-state compact"><b>Тестов пока нет</b><span>Выберите готовый шаблон слева.</span></div>{{end}}
+        </div>
+      </div>
     </section>
   </main>{{template "study_footer" .}}
 </body>

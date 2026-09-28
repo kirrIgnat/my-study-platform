@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260919-tests-1">
+</head>
+<body class="study-body admin-body cabinet-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+  <main class="study-main cabinet-main">
+    <section class="cabinet-heading"><div><span class="study-kicker">TEST LIBRARY</span><h1>Тесты и задания</h1><p>Готовые шаблоны можно выдавать ученику напрямую, на конкретное занятие или как домашнее задание.</p></div><a class="cabinet-center-link" href="/study/admin?tab=schedule">К занятиям →</a></section>
+    {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}{{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
+    <section class="test-library-grid">
+      {{range .TestTemplates}}
+      <article class="study-panel test-library-card">
+        <div class="test-card-top"><span class="status-pill {{.Status}}">{{.Status}}</span><span>{{.DurationMinutes}} мин</span></div>
+        <h2>{{.Title}}</h2><p>{{.Description}}</p>
+        <div class="test-card-stats"><span><b>{{.QuestionCount}}</b> вопросов</span><span><b>{{.ScoredQuestions}}</b> с баллами</span><span><b>{{.MaxScore}}</b> максимум</span></div>
+        <a class="study-button primary" href="/study/admin/tests/view?id={{.ID}}">Открыть и выдать →</a>
+      </article>
+      {{else}}
+      <div class="empty-state"><b>Шаблонов пока нет</b></div>
+      {{end}}
+    </section>
+
+    <section class="study-panel cabinet-section-card test-history-panel">
+      <div class="panel-head"><div><span class="panel-label">ИСТОРИЯ</span><h2>Последние выдачи</h2></div><span class="counter">{{len .TestAssignments}}</span></div>
+      {{if .TestAssignments}}<div class="test-assignment-list">
+        {{range .TestAssignments}}
+        <article class="test-assignment-row">
+          <div><b>{{.TestTitle}}</b><span>{{.UserName}} · {{if .BookingID}}{{.BookingDate}} {{.BookingTime}} · {{end}}{{if eq .AttachMode "homework"}}ДЗ{{else if eq .AttachMode "lesson"}}занятие{{else}}напрямую{{end}}</span></div>
+          <div class="test-assignment-meta">{{if .HasDeadline}}<span>до {{.DeadlineAt.Format "02.01 15:04"}}</span>{{end}}<span>{{.TimeLimitMinutes}} мин</span></div>
+          <div class="test-assignment-actions">
+            {{if eq .AttemptStatus "submitted"}}<span class="status-pill done">сдан · {{.Score}}/{{.MaxScore}}</span><a class="table-action" href="/study/admin/tests/result?id={{.ID}}">Результат →</a>
+            {{else if eq .AttemptStatus "expired"}}<span class="status-pill cancelled">время истекло{{if .HasAttempt}} · {{.Score}}/{{.MaxScore}}{{end}}</span>{{if .HasAttempt}}<a class="table-action" href="/study/admin/tests/result?id={{.ID}}">Результат →</a>{{end}}
+            {{else if eq .AttemptStatus "in_progress"}}<span class="status-pill pending">в процессе</span><a class="table-action" href="/study/admin/tests/result?id={{.ID}}">Статус →</a>
+            {{else}}<span class="status-pill pending">не начат</span>{{end}}
+          </div>
+        </article>
+        {{end}}
+      </div>{{else}}<div class="empty-state"><b>Тесты ещё никому не выдавались</b></div>{{end}}
+    </section>
+  </main>{{template "study_footer" .}}
+</body>
+</html>

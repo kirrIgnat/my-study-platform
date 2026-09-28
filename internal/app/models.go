@@ -38,6 +38,7 @@ type StudyBooking struct {
 	Rescheduled   bool
 	Status        string
 	CreatedAt     time.Time
+	Tests         []TestAssignment `json:"-"`
 }
 
 type TutoringSchedule struct {
@@ -106,6 +107,7 @@ type StudyLesson struct {
 	Published   bool
 	PublishedAt time.Time
 	UpdatedAt   time.Time
+	Tests       []TestAssignment `json:"-"`
 }
 
 type StudyNotification struct {

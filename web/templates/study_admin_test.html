@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260919-tests-1">
+</head>
+<body class="study-body admin-body cabinet-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+  <main class="study-main cabinet-main test-admin-main">
+    <section class="page-title test-template-title"><div><a class="back-link" href="/study/admin/tests">← Все тесты</a><span class="study-kicker">ШАБЛОН ТЕСТА</span><h1>{{.TestTemplate.Title}}</h1><p>{{.TestTemplate.Description}}</p></div><div class="test-title-meta"><span>{{.TestTemplate.QuestionCount}} вопросов</span><span>{{.TestTemplate.MaxScore}} баллов</span><span>{{.TestTemplate.DurationMinutes}} минут</span></div></section>
+
+    <section class="test-admin-layout">
+      <article class="study-panel test-assign-panel">
+        <span class="panel-label">ВЫДАТЬ УЧЕНИКУ</span><h2>Новое задание</h2><p class="panel-note">Для привязки к конкретному уроку откройте занятие в календаре. Здесь тест выдаётся напрямую.</p>
+        <form class="study-form" method="post" action="/study/admin/tests/assign">
+          <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="test_id" value="{{.TestTemplate.ID}}"><input type="hidden" name="attach_mode" value="direct">
+          <label><span>Ученик</span><select name="student_id" required><option value="">Выберите ученика</option>{{range .Students}}<option value="{{.ID}}">{{.Name}} · {{.Email}}</option>{{end}}</select></label>
+          <label><span>Время на выполнение, минут</span><input type="number" name="time_limit_minutes" min="1" max="480" value="{{.TestTemplate.DurationMinutes}}" required></label>
+          <label><span>Дедлайн <small>необязательно</small></span><input type="datetime-local" name="deadline"></label>
+          <button class="study-button primary wide" type="submit">Выдать тест</button>
+        </form>
+      </article>
+
+      <article class="study-panel test-preview-panel">
+        <div class="panel-head"><div><span class="panel-label">СОДЕРЖАНИЕ</span><h2>Вопросы</h2></div><span class="counter">{{len .TestQuestions}}</span></div>
+        <div class="test-preview-list">{{range .TestQuestions}}<details class="test-preview-question"><summary><span>{{printf "%02d" .SortOrder}}</span><div><small>{{.Section}}</small><b>{{.Prompt}}</b></div></summary><div class="test-preview-body">{{if .Code}}<pre><code>{{.Code}}</code></pre>{{end}}<div class="test-preview-options">{{range .Options}}<span><b>{{.Key}}.</b> {{.Text}}</span>{{end}}</div>{{if .Scored}}<small class="scored-note">Автоматически проверяется</small>{{else}}<small>Диагностический вопрос · без баллов</small>{{end}}</div></details>{{end}}</div>
+      </article>
+    </section>
+  </main>{{template "study_footer" .}}
+</body>
+</html>

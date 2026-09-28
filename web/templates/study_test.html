@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260919-tests-1">
+</head>
+<body class="study-body cabinet-body test-page-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+  <main class="study-main test-main">
+    {{if .TestAdminView}}
+      <a class="back-link" href="/study/admin/tests">← К тестам</a>
+    {{else}}
+      <a class="back-link" href="/study/account?tab=materials">← В кабинет</a>
+    {{end}}
+
+    {{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
+    {{if and .TestAdminView (not .TestStarted)}}
+      <section class="study-panel test-intro-card"><span class="study-kicker">ПОПЫТКА НЕ НАЧАТА</span><h1>{{.TestTemplate.Title}}</h1><p>{{.TestAssignment.UserName}} ещё не запускал это задание.</p></section>
+    {{else if not .TestStarted}}
+      <section class="study-panel test-intro-card">
+        <span class="study-kicker">ЗАДАНИЕ</span><h1>{{.TestTemplate.Title}}</h1><p>{{.TestTemplate.Description}}</p>
+        <div class="test-intro-stats"><div><span>Вопросов</span><b>{{.TestTemplate.QuestionCount}}</b></div><div><span>Время</span><b>{{.TestAssignment.TimeLimitMinutes}} мин</b></div><div><span>Баллов</span><b>{{.TestTemplate.MaxScore}}</b></div>{{if .TestAssignment.HasDeadline}}<div><span>Дедлайн</span><b>{{.TestAssignment.DeadlineAt.Format "02.01 15:04"}}</b></div>{{end}}</div>
+        <div class="test-rules"><b>Перед началом</b><p>Таймер запускается после нажатия кнопки и хранится на сервере. Перезагрузка страницы не сбрасывает время. Ответы автоматически сохраняются во время прохождения.</p></div>
+        {{if not .Error}}<form method="post" action="/study/test/start"><input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="assignment_id" value="{{.TestAssignment.ID}}"><button class="study-button primary test-start-button" type="submit">Начать тест</button></form>{{end}}
+      </section>
+    {{else if .TestFinished}}
+      <section class="test-result-hero study-panel">
+        <div><span class="study-kicker">{{if eq .TestAttempt.Status "expired"}}ВРЕМЯ ЗАВЕРШЕНО{{else}}ТЕСТ ЗАВЕРШЁН{{end}}</span><h1>{{.TestTemplate.Title}}</h1>{{if .TestAdminView}}<p>{{.TestAssignment.UserName}} · {{.TestAssignment.UserEmail}}</p>{{else}}<p>Ответы сохранены. Ниже — разбор результата.</p>{{end}}</div>
+        <div class="test-score"><b>{{.TestAttempt.Score}}</b><span>/ {{.TestAttempt.MaxScore}}</span></div>
+      </section>
+      <section class="test-breakdown-grid">{{range .TestBreakdown}}<article class="study-panel"><span>{{.Label}}</span><b>{{.Score}} / {{.MaxScore}}</b><p>{{.Level}}</p></article>{{end}}</section>
+      {{if .TestAdminView}}<div class="study-panel test-review-note"><b>Для устного разбора</b><p>Особенно полезно попросить ученика объяснить ход мысли в вопросах 9, 12, 17 и 21 — они хорошо показывают понимание, а не запоминание терминов.</p></div>{{end}}
+      <section class="test-question-list result-list">
+        {{range .TestQuestions}}
+        <article class="study-panel test-question-card {{if .Scored}}{{if .IsCorrect}}question-correct{{else}}question-wrong{{end}}{{else}}question-survey{{end}}">
+          <div class="test-question-head"><span>{{printf "%02d" .SortOrder}}</span><div><small>{{.Section}}</small><h2>{{.Prompt}}</h2></div>{{if .Scored}}{{if .IsCorrect}}<b class="answer-result ok">верно</b>{{else}}<b class="answer-result bad">ошибка</b>{{end}}{{else}}<b class="answer-result neutral">диагностика</b>{{end}}</div>
+          {{if .Code}}<pre class="test-code"><code>{{.Code}}</code></pre>{{end}}
+          <div class="test-options result-options">{{range .Options}}<div class="test-option {{.State}}"><span class="option-key">{{.Key}}</span><span>{{.Text}}</span>{{if .Selected}}<small>{{if $.TestAdminView}}ответ ученика{{else}}ваш ответ{{end}}</small>{{end}}{{if .Correct}}<small>правильный</small>{{end}}</div>{{end}}</div>
+          {{if and .Scored .Explanation}}<div class="test-explanation"><b>Разбор</b><p>{{.Explanation}}</p></div>{{end}}
+        </article>
+        {{end}}
+      </section>
+    {{else}}
+      {{if .TestAdminView}}
+        <section class="study-panel test-intro-card"><span class="study-kicker">ПОПЫТКА В ПРОЦЕССЕ</span><h1>{{.TestAssignment.UserName}}</h1><p>Ученик начал тест. Ответы и разбор станут доступны после сдачи или окончания времени.</p></section>
+      {{else}}
+        <form class="test-running-form" method="post" action="/study/test/submit" data-test-form data-expires-at="{{.TestAttempt.ExpiresAt.Unix}}">
+          <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="assignment_id" value="{{.TestAssignment.ID}}">
+          <div class="test-running-bar"><div><span class="study-kicker">{{.TestTemplate.Title}}</span><small data-save-state>Ответы сохранены</small></div><div class="test-timer"><span>Осталось</span><b data-test-timer>--:--</b></div></div>
+          <section class="test-question-list">
+            {{range .TestQuestions}}{{$q := .}}
+            <article class="study-panel test-question-card">
+              <div class="test-question-head"><span>{{printf "%02d" .SortOrder}}</span><div><small>{{.Section}}</small><h2>{{.Prompt}}</h2></div>{{if not .Scored}}<b class="answer-result neutral">без баллов</b>{{end}}</div>
+              {{if .Code}}<pre class="test-code"><code>{{.Code}}</code></pre>{{end}}
+              <div class="test-options">
+                {{range .Options}}
+                  <label class="test-option"><input type="{{if or (eq $q.Kind "multiple") (eq $q.Kind "survey_multiple")}}checkbox{{else}}radio{{end}}" name="q_{{$q.ID}}" value="{{.Key}}" {{if .Selected}}checked{{end}}><span class="option-key">{{.Key}}</span><span>{{.Text}}</span></label>
+                {{end}}
+              </div>
+            </article>
+            {{end}}
+          </section>
+          <div class="test-submit-panel study-panel"><div><b>Готово?</b><span>После отправки изменить ответы уже нельзя.</span></div><button class="study-button primary" type="submit">Завершить тест</button></div>
+        </form>
+      {{end}}
+    {{end}}
+  </main>{{template "study_footer" .}}
+  {{if and .TestStarted (not .TestFinished) (not .TestAdminView)}}<script src="/static/js/study_test.js?v=20260919-tests-1"></script>{{end}}
+</body>
+</html>
