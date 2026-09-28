@@ -104,11 +104,23 @@ func (s *StudyApp) adminStudentAPI(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, "не удалось загрузить материалы", http.StatusInternalServerError)
 		return
 	}
+	homeworkAssignments, err := listHomeworkAssignmentsForStudent(s.db, studentID)
+	if err != nil {
+		writeJSONError(w, "не удалось загрузить домашние задания", http.StatusInternalServerError)
+		return
+	}
+	homeworkChoices, err := listHomeworkTaskChoicesForStudent(s.db, studentID, "")
+	if err != nil {
+		writeJSONError(w, "не удалось загрузить банк задач", http.StatusInternalServerError)
+		return
+	}
 	writeJSON(w, map[string]any{
-		"student":   map[string]any{"id": student.ID, "name": student.Name, "email": student.Email, "telegram": student.Telegram, "created_at": student.Created},
-		"schedules": schedules,
-		"events":    calendarEventsFromBookings(bookings),
-		"lessons":   lessons,
+		"student":              map[string]any{"id": student.ID, "name": student.Name, "email": student.Email, "telegram": student.Telegram, "created_at": student.Created},
+		"schedules":            schedules,
+		"events":               calendarEventsFromBookings(bookings),
+		"lessons":              lessons,
+		"homework_assignments": homeworkAssignments,
+		"homework_choices":     homeworkChoices,
 	}, http.StatusOK)
 }
 

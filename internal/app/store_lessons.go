@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+func hydrateLessonMarkdown(lesson *StudyLesson) {
+	lesson.TheoryHTML = renderStudyMarkdown(lesson.Theory)
+	lesson.HomeworkHTML = renderStudyMarkdown(lesson.Homework)
+}
+
 func getAdminLesson(db *AppDB, bookingID string, loc *time.Location) (StudyLesson, error) {
 	rows, err := db.Query(`SELECT b.id,COALESCE(b.schedule_id,''),b.user_id,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.status,
 		u.name,u.email,COALESCE(l.title,''),COALESCE(l.theory,''),COALESCE(l.homework,''),COALESCE(l.video_url,''),
@@ -27,12 +32,13 @@ func getAdminLesson(db *AppDB, bookingID string, loc *time.Location) (StudyLesso
 	if ts := parseInt64(row[17]); ts > 0 {
 		lesson.UpdatedAt = time.Unix(ts, 0).In(loc)
 	}
+	hydrateLessonMarkdown(&lesson)
 	return lesson, nil
 }
 
 func saveLessonMaterial(db *AppDB, bookingID, title, theory, homework, videoURL string, publish bool) error {
 	title, theory, homework, videoURL = strings.TrimSpace(title), strings.TrimSpace(theory), strings.TrimSpace(homework), strings.TrimSpace(videoURL)
-	if len([]rune(title)) > 180 || len([]rune(theory)) > 30000 || len([]rune(homework)) > 20000 {
+	if len([]rune(title)) > 180 || len([]rune(theory)) > 250000 || len([]rune(homework)) > 20000 {
 		return errors.New("слишком большой объём материалов")
 	}
 	if len(videoURL) > 2048 || (videoURL != "" && !validHTTPURL(videoURL)) {
@@ -112,6 +118,7 @@ func listPublishedLessonsForStudent(db *AppDB, userID string, loc *time.Location
 		if ts := parseInt64(row[16]); ts > 0 {
 			lesson.UpdatedAt = time.Unix(ts, 0).In(loc)
 		}
+		hydrateLessonMarkdown(&lesson)
 		result = append(result, lesson)
 	}
 	return result, nil
@@ -149,6 +156,7 @@ func listLessonsForStudentAdmin(db *AppDB, userID string, loc *time.Location) ([
 		if ts := parseInt64(row[16]); ts > 0 {
 			lesson.UpdatedAt = time.Unix(ts, 0).In(loc)
 		}
+		hydrateLessonMarkdown(&lesson)
 		result = append(result, lesson)
 	}
 	return result, nil

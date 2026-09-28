@@ -1,7 +1,7 @@
 {{define "study_nav"}}
 <header class="study-nav-shell">
   <div class="study-nav">
-    <a class="study-brand" href="/study"><span class="study-brand-mark">K</span><span>KIRILL<strong>.STUDY</strong></span></a>
+    <a class="study-brand" href="/study"><span class="study-brand-mark">K</span><span>MY<strong>.STUDY</strong></span></a>
     <nav class="study-tabs" aria-label="Разделы учебного центра">
       <a {{if eq .Active "home"}}class="active"{{end}} href="/study">Обучение</a>
       <a {{if eq .Active "booking"}}class="active"{{end}} href="/study/booking">Запись</a>
@@ -28,7 +28,16 @@
   <div class="cabinet-nav">
     <div class="cabinet-nav-top">
       <a class="cabinet-back" href="/study">← Учебный центр</a>
-      <a class="cabinet-brand" href="{{if eq .User.Role "admin"}}/study/admin{{else}}/study/account{{end}}"><span class="study-brand-mark">K</span><span>{{if eq .User.Role "admin"}}KIRILL<strong>.ADMIN</strong>{{else}}KIRILL<strong>.CABINET</strong>{{end}}</span></a>
+      <a class="cabinet-brand" href="{{if eq .User.Role "admin"}}/study/admin{{else}}/study/account{{end}}">
+        <span class="study-brand-mark">K</span>
+        <span>
+          {{if eq .User.Role "admin"}}
+            MY<strong>.ADMIN</strong>
+          {{else}}
+            {{.User.CabinetName}}<strong>.CABINET</strong>
+          {{end}}
+        </span>
+      </a>
       <div class="cabinet-account-actions">
         <a class="cabinet-notification-link {{if eq .CabinetTab "notifications"}}active{{end}}" href="/study/notifications" aria-label="Уведомления"><span>Уведомления</span>{{if gt .Unread 0}}<b>{{.Unread}}</b>{{end}}</a>
         <div class="cabinet-user"><span>{{.User.Name}}</span><small>{{if eq .User.Role "admin"}}ADMIN{{else}}STUDENT{{end}}</small></div>
@@ -40,6 +49,7 @@
         <a {{if eq .CabinetTab "overview"}}class="active"{{end}} href="/study/admin?tab=overview">Обзор</a>
         <a {{if eq .CabinetTab "schedule"}}class="active"{{end}} href="/study/admin?tab=schedule">Расписание</a>
         <a {{if eq .CabinetTab "slots"}}class="active"{{end}} href="/study/admin/slots">Слоты</a>
+        <a {{if eq .CabinetTab "homework"}}class="active"{{end}} href="/study/admin/homework">База задач</a>
         <a {{if eq .CabinetTab "tests"}}class="active"{{end}} href="/study/admin/tests">Тесты</a>
         <a {{if eq .CabinetTab "transfers"}}class="active"{{end}} href="/study/admin?tab=transfers">Переносы</a>
         <a {{if eq .CabinetTab "students"}}class="active"{{end}} href="/study/admin?tab=students">Ученики</a>
@@ -57,6 +67,6 @@
 {{end}}
 
 {{define "study_footer"}}
-<footer class="study-footer"><span>© 2026 KIRILL.STUDY</span><span>C / C++ / GO / LINUX</span></footer>
+<footer class="study-footer"><span>© 2026 MY.STUDY</span><span>C / C++ / GO / LINUX</span></footer>
 <script src="/static/js/study_ui.js?v=20260913-4"></script>
 {{end}}

@@ -11,14 +11,14 @@ func (s *StudyApp) login(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, dashboardPath(session.User.Role), http.StatusSeeOther)
 			return
 		}
-		renderStudy(w, "study_login.html", s.baseData(w, r, "Вход — KIRILL.STUDY", "login"))
+		renderStudy(w, "study_login.html", s.baseData(w, r, "Вход — MY.STUDY", "login"))
 		return
 	}
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		return
 	}
-	data := s.baseData(w, r, "Вход — KIRILL.STUDY", "login")
+	data := s.baseData(w, r, "Вход — MY.STUDY", "login")
 	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
 	if err := r.ParseForm(); err != nil || !s.auth.VerifyCSRF(r, nil) {
 		data.Error = "Сессия формы устарела. Обновите страницу и попробуйте снова."
@@ -51,14 +51,14 @@ func (s *StudyApp) register(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, dashboardPath(session.User.Role), http.StatusSeeOther)
 			return
 		}
-		renderStudy(w, "study_register.html", s.baseData(w, r, "Регистрация — KIRILL.STUDY", "login"))
+		renderStudy(w, "study_register.html", s.baseData(w, r, "Регистрация — MY.STUDY", "login"))
 		return
 	}
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w, http.MethodGet, http.MethodPost)
 		return
 	}
-	data := s.baseData(w, r, "Регистрация — KIRILL.STUDY", "login")
+	data := s.baseData(w, r, "Регистрация — MY.STUDY", "login")
 	r.Body = http.MaxBytesReader(w, r.Body, 20<<10)
 	if err := r.ParseForm(); err != nil || !s.auth.VerifyCSRF(r, nil) {
 		data.Error = "Сессия формы устарела. Обновите страницу и попробуйте снова."

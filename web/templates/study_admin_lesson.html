@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-slots-1">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-2">
 </head>
 <body class="study-body admin-body cabinet-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
@@ -30,18 +30,37 @@
       </article>
 
       <article class="study-panel lesson-publish-panel">
-        <div class="panel-head"><div><span class="panel-label">ПОСЛЕ ЗАНЯТИЯ</span><h2>Материал и домашнее задание</h2></div>{{if .Lesson.Published}}<span class="status-pill done">опубликовано</span>{{else}}<span class="status-pill pending">черновик</span>{{end}}</div>
-        <form class="study-form" method="post" action="/study/admin/lesson/save">
+        <div class="panel-head"><div><span class="panel-label">МАТЕРИАЛ ЗАНЯТИЯ</span><h2>Конспект в Markdown</h2></div>{{if .Lesson.Published}}<span class="status-pill done">опубликовано</span>{{else}}<span class="status-pill pending">черновик</span>{{end}}</div>
+        <form class="study-form" method="post" action="/study/admin/lesson/save" enctype="multipart/form-data">
           <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}">
           <label><span>Название урока</span><input type="text" name="title" maxlength="180" value="{{.Lesson.Title}}" placeholder="Например: Указатели и управление памятью"></label>
-          <label><span>Теория / конспект / полезные ссылки</span><textarea name="theory" rows="10" maxlength="30000" placeholder="Что разобрали на занятии, примеры, ссылки на документацию…">{{.Lesson.Theory}}</textarea></label>
-          <label><span>Домашнее задание</span><textarea name="homework" rows="7" maxlength="20000" placeholder="Задачи, требования, дедлайн, критерии…">{{.Lesson.Homework}}</textarea></label>
+          <label><span>Markdown-файл <small>необязательно</small></span><input type="file" name="theory_file" accept=".md,.markdown,.txt,text/markdown,text/plain"><small>Если файл выбран, его содержимое заменит текст из поля ниже. Максимум 256 КБ.</small></label>
+          <label><span>Материал · Markdown</span><textarea name="theory" rows="14" maxlength="250000" placeholder="# Тема занятия&#10;&#10;Краткий конспект…&#10;&#10;```go&#10;fmt.Println(&quot;hello&quot;)&#10;```">{{.Lesson.Theory}}</textarea><small>Поддерживаются заголовки, списки, ссылки, цитаты, inline-code и fenced-блоки кода с подсветкой.</small></label>
           <label><span>Видео с занятия <small>необязательно</small></span><input type="url" name="video_url" maxlength="2048" value="{{.Lesson.VideoURL}}" placeholder="https://..."><small>Можно вставить ссылку на запись в облаке, YouTube unlisted, Яндекс Диск и т.п.</small></label>
           <div class="lesson-form-actions"><button class="study-button secondary" type="submit" name="action" value="draft">Сохранить</button><button class="study-button primary" type="submit" name="action" value="publish">Опубликовать ученику</button></div>
-          <p class="panel-note">При публикации занятие автоматически получает статус <b>done</b>, а материал появляется в личном кабинете ученика.</p>
+          <p class="panel-note">При публикации занятие автоматически получает статус <b>done</b>. Домашние задачи назначаются отдельно из банка ниже.</p>
         </form>
       </article>
     </section>
+
+    <section class="study-panel lesson-homework-panel">
+      <div class="panel-head"><div><span class="panel-label">ДОМАШНЕЕ ЗАДАНИЕ</span><h2>Выбрать задачи из базы</h2></div><a class="table-action" href="/study/admin/homework">Открыть базу задач →</a></div>
+      <div class="lesson-homework-layout">
+        <div class="lesson-homework-picker">
+          <div class="homework-picker-toolbar"><input type="search" placeholder="Поиск по названию или теме" data-homework-search><select data-homework-difficulty><option value="">Любая сложность</option><option value="easy">Лёгкие</option><option value="medium">Средние</option><option value="hard">Сложные</option></select></div>
+          <form method="post" action="/study/admin/homework/assign" class="homework-pick-form">
+            <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="student_id" value="{{.Lesson.UserID}}"><input type="hidden" name="booking_id" value="{{.Lesson.BookingID}}">
+            {{if .HomeworkTaskChoices}}<div class="homework-choice-list" data-homework-list>{{range .HomeworkTaskChoices}}<label class="homework-choice {{if eq .LastStatus "incorrect"}}recommended-repeat{{end}}" data-homework-item data-search="{{.Task.Title}} {{.Task.Topic}} {{.Task.Language}}" data-difficulty="{{.Task.Difficulty}}"><input type="checkbox" name="task_id" value="{{.Task.ID}}" {{if .AlreadyThisLesson}}disabled{{end}}><div class="homework-choice-main"><div class="task-badges"><span>{{.Task.Topic}}</span>{{if .Task.Language}}<span>{{.Task.Language}}</span>{{end}}<span class="difficulty {{.Task.Difficulty}}">{{.Task.DifficultyLabel}}</span></div><b>{{.Task.Title}}</b><small>{{if eq .LastStatus "incorrect"}}↻ Была неправильная попытка · можно назначить повторно{{else}}Ещё не выдавалась этому ученику{{end}}</small></div>{{if eq .LastStatus "incorrect"}}<span class="task-history-state incorrect">повторить</span>{{end}}</label>{{end}}</div><button class="study-button primary wide" type="submit">Назначить выбранные задачи</button>{{else}}<div class="empty-state"><b>Нет задач для назначения</b><span>Правильно решённые и уже ожидающие проверки задачи скрываются. Если список пуст, добавь новые задачи в базу.</span><a href="/study/admin/homework">Открыть базу задач →</a></div>{{end}}
+          </form>
+        </div>
+        <div class="lesson-homework-current">
+          <div class="subsection-title"><span>НА ЭТО ЗАНЯТИЕ</span><b>{{len .HomeworkAssignments}}</b></div>
+          {{if .HomeworkAssignments}}<div class="assigned-homework-list">{{range .HomeworkAssignments}}<article><div class="assigned-homework-title"><div class="task-badges"><span>{{.Task.Topic}}</span>{{if .Task.Language}}<span>{{.Task.Language}}</span>{{end}}<span class="difficulty {{.Task.Difficulty}}">{{.Task.DifficultyLabel}}</span></div><b>{{.Task.Title}}</b><small>Назначено {{.AssignedAt.Format "02.01 15:04"}}</small></div><form method="post" action="/study/admin/homework/status" class="homework-status-form"><input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="booking_id" value="{{$.Lesson.BookingID}}"><input type="hidden" name="assignment_id" value="{{.ID}}"><select name="status"><option value="assigned" {{if eq .Status "assigned"}}selected{{end}}>Не проверена</option><option value="correct" {{if eq .Status "correct"}}selected{{end}}>Решена верно</option><option value="incorrect" {{if eq .Status "incorrect"}}selected{{end}}>Есть ошибка</option></select><input type="text" name="teacher_note" maxlength="2000" value="{{.TeacherNote}}" placeholder="Комментарий ученику"><button class="study-button secondary small" type="submit">Сохранить</button></form></article>{{end}}</div>{{else}}<div class="empty-state compact"><b>Задачи ещё не назначены</b><span>Выбери одну или несколько задач слева.</span></div>{{end}}
+        </div>
+      </div>
+    </section>
+
+    {{if .Lesson.Homework}}<section class="study-panel legacy-homework-panel"><details><summary>Старое текстовое ДЗ из предыдущей версии</summary><div class="md-content">{{.Lesson.HomeworkHTML}}</div></details></section>{{end}}
 
     <section class="study-panel lesson-test-panel">
       <div class="panel-head"><div><span class="panel-label">ТЕСТ / ЗАДАНИЕ</span><h2>Прикрепить тест к занятию</h2></div><span class="counter">{{len .TestAssignments}}</span></div>
@@ -59,6 +78,6 @@
       </div>
     </section>
   </main>{{template "study_footer" .}}
-  <script src="/static/js/study_admin_lesson.js?v=20260928-1"></script>
+  <script src="/static/js/study_admin_lesson.js?v=20260928-1"></script><script src="/static/js/study_homework_admin.js?v=20260928-1"></script>
 </body>
 </html>

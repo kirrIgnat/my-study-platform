@@ -1,4 +1,4 @@
-# Production deployment: Portfolio + KIRILL.STUDY + PostgreSQL
+# Production deployment: Portfolio + MY.STUDY + PostgreSQL
 
 Пример для Debian/Ubuntu. Nginx принимает внешний трафик, Go-приложение слушает только `127.0.0.1:3000`, PostgreSQL — только localhost/private network.
 
@@ -87,7 +87,7 @@ BOOKING_TIMEZONE=Europe/Moscow
 BOOKING_SCHEDULE='2=18:00,19:30,21:00;4=18:00,19:30,21:00;6=12:00,13:30,15:00'
 ```
 
-`ADMIN_PASSWORD` — пароль именно от KIRILL.STUDY, а не от почты. При первом старте он хэшируется PBKDF2-HMAC-SHA256 с уникальной солью и в PostgreSQL попадает только хэш. После проверки входа удалите `ADMIN_PASSWORD` из env и перезапустите сервис.
+`ADMIN_PASSWORD` — пароль именно от MY.STUDY, а не от почты. При первом старте он хэшируется PBKDF2-HMAC-SHA256 с уникальной солью и в PostgreSQL попадает только хэш. После проверки входа удалите `ADMIN_PASSWORD` из env и перезапустите сервис.
 
 ## 5. systemd
 

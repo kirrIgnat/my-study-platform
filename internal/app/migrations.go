@@ -158,6 +158,52 @@ func migrateStudyDB(db *AppDB) error {
             updated_at BIGINT NOT NULL
         )`,
 		`CREATE INDEX IF NOT EXISTS lesson_materials_published_idx ON lesson_materials(published, published_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS homework_tasks (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            topic TEXT NOT NULL,
+            language TEXT NOT NULL DEFAULT '',
+            difficulty TEXT NOT NULL CHECK(difficulty IN ('easy','medium','hard')),
+            statement_md TEXT NOT NULL,
+            input_md TEXT NOT NULL DEFAULT '',
+            output_md TEXT NOT NULL DEFAULT '',
+            examples_md TEXT NOT NULL DEFAULT '',
+            active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
+            created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            created_at BIGINT NOT NULL,
+            updated_at BIGINT NOT NULL
+        )`,
+		`ALTER TABLE homework_tasks ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE homework_tasks ADD COLUMN IF NOT EXISTS input_md TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE homework_tasks ADD COLUMN IF NOT EXISTS output_md TEXT NOT NULL DEFAULT ''`,
+		`CREATE INDEX IF NOT EXISTS homework_tasks_catalog_idx ON homework_tasks(active,topic,difficulty,title)`,
+		`CREATE TABLE IF NOT EXISTS homework_assignments (
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL REFERENCES homework_tasks(id) ON DELETE RESTRICT,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            booking_id TEXT REFERENCES bookings(id) ON DELETE SET NULL,
+            assigned_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            status TEXT NOT NULL DEFAULT 'assigned' CHECK(status IN ('assigned','correct','incorrect')),
+            teacher_note TEXT NOT NULL DEFAULT '',
+            assigned_at BIGINT NOT NULL,
+            updated_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS homework_assignments_user_idx ON homework_assignments(user_id,assigned_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS homework_assignments_booking_idx ON homework_assignments(booking_id,assigned_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS homework_assignments_task_user_idx ON homework_assignments(task_id,user_id,assigned_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS homework_submissions (
+            id TEXT PRIMARY KEY,
+            assignment_id TEXT NOT NULL REFERENCES homework_assignments(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            language TEXT NOT NULL DEFAULT '',
+            source_code TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','submitted','checking','accepted','wrong_answer','compile_error','runtime_error')),
+            result_text TEXT NOT NULL DEFAULT '',
+            created_at BIGINT NOT NULL,
+            updated_at BIGINT NOT NULL,
+            submitted_at BIGINT
+        )`,
+		`CREATE INDEX IF NOT EXISTS homework_submissions_assignment_idx ON homework_submissions(assignment_id,created_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS test_templates (
             id TEXT PRIMARY KEY,
             slug TEXT NOT NULL UNIQUE,
@@ -236,6 +282,9 @@ func migrateStudyDB(db *AppDB) error {
 		if err := seedDiagnosticTest(tx, now); err != nil {
 			return fmt.Errorf("seed diagnostic test: %w", err)
 		}
+		if err := seedCHomeworkTasks(tx, now); err != nil {
+			return fmt.Errorf("seed C homework tasks: %w", err)
+		}
 		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 1, now); err != nil {
 			return err
 		}
@@ -245,7 +294,13 @@ func migrateStudyDB(db *AppDB) error {
 		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 3, now); err != nil {
 			return err
 		}
-		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 4, now)
+		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 4, now); err != nil {
+			return err
+		}
+		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 5, now); err != nil {
+			return err
+		}
+		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 6, now)
 	})
 }
 

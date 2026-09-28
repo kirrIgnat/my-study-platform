@@ -342,7 +342,7 @@ func (h *teacherSlotsHTTP) page(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	data := h.study.baseData(w, r, "Слоты преподавателя — KIRILL.STUDY", "admin")
+	data := h.study.baseData(w, r, "Слоты преподавателя — MY.STUDY", "admin")
 	data.CabinetTab = "slots"
 	renderStudy(w, "study_admin_slots.html", data)
 }

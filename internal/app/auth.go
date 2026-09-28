@@ -30,6 +30,24 @@ type StudyUser struct {
 	Created  time.Time
 }
 
+func (u StudyUser) CabinetName() string {
+	telegram := strings.TrimSpace(u.Telegram)
+	telegram = strings.TrimSpace(strings.TrimLeft(telegram, "@"))
+	if telegram != "" {
+		return telegram
+	}
+
+	email := strings.TrimSpace(u.Email)
+	if at := strings.IndexByte(email, '@'); at > 0 {
+		return email[:at]
+	}
+	if email != "" {
+		return email
+	}
+
+	return "student"
+}
+
 type UserSession struct {
 	User      StudyUser
 	TokenHash string

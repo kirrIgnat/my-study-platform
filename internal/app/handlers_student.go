@@ -12,7 +12,7 @@ func (s *StudyApp) bookingPage(w http.ResponseWriter, r *http.Request) {
 	if !allowMethod(w, r, http.MethodGet, http.MethodHead) {
 		return
 	}
-	data := s.baseData(w, r, "Постоянное расписание — KIRILL.STUDY", "booking")
+	data := s.baseData(w, r, "Постоянное расписание — MY.STUDY", "booking")
 	if data.User != nil && data.User.Role == "student" {
 		data.StudentSchedules, _ = getUserSchedules(s.db, data.User.ID)
 		if len(data.StudentSchedules) > 0 {
@@ -26,12 +26,12 @@ func (s *StudyApp) coursesPage(w http.ResponseWriter, r *http.Request) {
 	if !allowMethod(w, r, http.MethodGet, http.MethodHead) {
 		return
 	}
-	renderStudy(w, "study_courses.html", s.baseData(w, r, "Курсы — скоро | KIRILL.STUDY", "courses"))
+	renderStudy(w, "study_courses.html", s.baseData(w, r, "Курсы — скоро | MY.STUDY", "courses"))
 }
 
 func (s *StudyApp) studentAccountData(w http.ResponseWriter, r *http.Request, session *UserSession) StudyPageData {
 	_ = ensureRecurringBookings(s.db, s.loc, 16)
-	data := s.baseData(w, r, "Личный кабинет — KIRILL.STUDY", "account")
+	data := s.baseData(w, r, "Личный кабинет — MY.STUDY", "account")
 	data.CabinetTab = normalizeCabinetTab(r.URL.Query().Get("tab"), "student")
 	data.StudentSchedules, _ = getUserSchedules(s.db, session.User.ID)
 	if len(data.StudentSchedules) > 0 {
@@ -49,10 +49,19 @@ func (s *StudyApp) studentAccountData(w http.ResponseWriter, r *http.Request, se
 	if assignmentErr != nil {
 		log.Printf("account tests: %v", assignmentErr)
 	}
+	homeworkAssignments, homeworkErr := listHomeworkAssignmentsForStudent(s.db, session.User.ID)
+	if homeworkErr != nil {
+		log.Printf("account homework: %v", homeworkErr)
+	}
+	activeHomework, completedHomework := splitStudentHomeworkAssignments(homeworkAssignments)
 	bookings, lessons = attachTestsToStudentData(bookings, lessons, assignments)
+	bookings = attachHomeworkAssignmentsToBookings(bookings, activeHomework)
+	lessons = attachHomeworkAssignmentsToLessons(lessons, activeHomework)
 	data.Bookings = bookings
 	data.Lessons = lessons
 	data.TestAssignments = assignments
+	data.HomeworkAssignments = activeHomework
+	data.CompletedHomeworkAssignments = completedHomework
 	now := time.Now().In(s.loc)
 	for _, booking := range bookings {
 		if booking.Status != "cancelled" && booking.Status != "done" && booking.SlotStart.After(now) {
@@ -141,7 +150,7 @@ func (s *StudyApp) notificationsPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/study/login", http.StatusSeeOther)
 		return
 	}
-	data := s.baseData(w, r, "Уведомления — KIRILL.STUDY", "notifications")
+	data := s.baseData(w, r, "Уведомления — MY.STUDY", "notifications")
 	data.CabinetTab = "notifications"
 	data.Notifications, _ = listNotifications(s.db, session.User.ID)
 	if session.User.Role == "admin" {

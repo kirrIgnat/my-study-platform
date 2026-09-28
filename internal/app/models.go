@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"html/template"
 	"time"
 )
 
@@ -19,28 +20,29 @@ type StudyCourse struct {
 }
 
 type StudyBooking struct {
-	ID              string
-	UserID          string
-	UserName        string
-	UserEmail       string
-	Telegram        string
-	SlotStart       time.Time
-	Date            string
-	Time            string
-	EndTime         string
-	DurationMinutes int
-	Timezone        string
-	Topic           string
-	MeetingURL      string
-	WeekKey         string
-	ScheduleID      string
-	OccurrenceKey   string
-	OriginalDate    string
-	OriginalTime    string
-	Rescheduled     bool
-	Status          string
-	CreatedAt       time.Time
-	Tests           []TestAssignment `json:"-"`
+	ID                  string
+	UserID              string
+	UserName            string
+	UserEmail           string
+	Telegram            string
+	SlotStart           time.Time
+	Date                string
+	Time                string
+	EndTime             string
+	DurationMinutes     int
+	Timezone            string
+	Topic               string
+	MeetingURL          string
+	WeekKey             string
+	ScheduleID          string
+	OccurrenceKey       string
+	OriginalDate        string
+	OriginalTime        string
+	Rescheduled         bool
+	Status              string
+	CreatedAt           time.Time
+	Tests               []TestAssignment     `json:"-"`
+	HomeworkAssignments []HomeworkAssignment `json:"-"`
 }
 
 type TutoringSchedule struct {
@@ -93,28 +95,73 @@ type RescheduleRequest struct {
 	ResolvedAt       time.Time
 }
 
-type StudyLesson struct {
-	BookingID       string
-	ScheduleID      string
-	UserID          string
-	UserName        string
-	UserEmail       string
-	Date            string
-	Time            string
-	EndTime         string
-	DurationMinutes int
-	Timezone        string
-	Topic           string
-	MeetingURL      string
-	Status          string
+type HomeworkTask struct {
+	ID              string
 	Title           string
-	Theory          string
-	Homework        string
-	VideoURL        string
-	Published       bool
-	PublishedAt     time.Time
+	Topic           string
+	Language        string
+	Difficulty      string
+	DifficultyLabel string
+	StatementMD     string
+	InputMD         string
+	OutputMD        string
+	ExamplesMD      string
+	StatementHTML   template.HTML
+	InputHTML       template.HTML
+	OutputHTML      template.HTML
+	ExamplesHTML    template.HTML
+	Active          bool
+	CreatedAt       time.Time
 	UpdatedAt       time.Time
-	Tests           []TestAssignment `json:"-"`
+}
+
+type HomeworkAssignment struct {
+	ID          string
+	TaskID      string
+	UserID      string
+	BookingID   string
+	AssignedBy  string
+	Status      string
+	StatusLabel string
+	TeacherNote string
+	AssignedAt  time.Time
+	UpdatedAt   time.Time
+	Task        HomeworkTask
+}
+
+type HomeworkTaskChoice struct {
+	Task              HomeworkTask
+	TimesAssigned     int
+	LastStatus        string
+	LastStatusLabel   string
+	AlreadyThisLesson bool
+}
+
+type StudyLesson struct {
+	BookingID           string
+	ScheduleID          string
+	UserID              string
+	UserName            string
+	UserEmail           string
+	Date                string
+	Time                string
+	EndTime             string
+	DurationMinutes     int
+	Timezone            string
+	Topic               string
+	MeetingURL          string
+	Status              string
+	Title               string
+	Theory              string
+	TheoryHTML          template.HTML
+	Homework            string
+	HomeworkHTML        template.HTML
+	VideoURL            string
+	Published           bool
+	PublishedAt         time.Time
+	UpdatedAt           time.Time
+	Tests               []TestAssignment     `json:"-"`
+	HomeworkAssignments []HomeworkAssignment `json:"-"`
 }
 
 type StudyNotification struct {

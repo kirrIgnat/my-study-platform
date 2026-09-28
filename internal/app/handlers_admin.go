@@ -8,7 +8,7 @@ import (
 
 func (s *StudyApp) adminData(w http.ResponseWriter, r *http.Request, session *UserSession) StudyPageData {
 	_ = ensureRecurringBookings(s.db, s.loc, 16)
-	data := s.baseData(w, r, "Админ-панель — KIRILL.STUDY", "admin")
+	data := s.baseData(w, r, "Админ-панель — MY.STUDY", "admin")
 	data.CabinetTab = normalizeCabinetTab(r.URL.Query().Get("tab"), "admin")
 	data.Stats, _ = adminStats(s.db, time.Now(), session.User.ID)
 	data.Unread = data.Stats.Unread
@@ -80,11 +80,12 @@ func (s *StudyApp) adminBookingUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	bookingID := strings.TrimSpace(r.FormValue("booking_id"))
 	if err := updateBookingAdmin(s.db, session.User.ID, bookingID, strings.TrimSpace(r.FormValue("status")), r.FormValue("meeting_url"), r.FormValue("date"), r.FormValue("time"), s.loc, s.schedule); err != nil {
-		data := s.baseData(w, r, "Занятие — KIRILL.STUDY", "admin")
+		data := s.baseData(w, r, "Занятие — MY.STUDY", "admin")
 		data.CabinetTab = "schedule"
 		data.Error = err.Error()
 		data.Lesson, _ = getAdminLesson(s.db, bookingID, s.loc)
 		s.populateAdminLessonTests(&data, bookingID)
+		s.populateAdminLessonHomework(&data, bookingID, data.Lesson.UserID)
 		renderStudy(w, "study_admin_lesson.html", data)
 		return
 	}
@@ -118,19 +119,24 @@ func (s *StudyApp) adminLesson(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	data := s.baseData(w, r, "Занятие — KIRILL.STUDY", "admin")
+	data := s.baseData(w, r, "Занятие — MY.STUDY", "admin")
 	data.CabinetTab = "schedule"
 	data.Lesson = lesson
 	s.populateAdminLessonTests(&data, bookingID)
+	s.populateAdminLessonHomework(&data, bookingID, lesson.UserID)
 	switch r.URL.Query().Get("saved") {
 	case "schedule":
 		data.Success = "Параметры занятия сохранены. Ученик получил уведомление об изменениях."
 	case "materials":
 		data.Success = "Материалы сохранены как черновик."
 	case "published":
-		data.Success = "Материалы опубликованы. Ученик получил уведомление о новом ДЗ/материалах."
+		data.Success = "Материалы опубликованы. Ученик получил уведомление об обновлении конспекта."
 	case "test":
 		data.Success = "Тест прикреплён к занятию. Ученик получил уведомление."
+	case "homework":
+		data.Success = "Домашние задачи назначены ученику."
+	case "homework-status":
+		data.Success = "Статус домашней задачи обновлён."
 	}
 	renderStudy(w, "study_admin_lesson.html", data)
 }
@@ -141,13 +147,19 @@ func (s *StudyApp) adminLessonSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session := s.requireAdmin(w, r)
-	if session == nil || !s.auth.VerifyCSRF(r, session) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	if session == nil {
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
-	if err := r.ParseForm(); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, 512<<10)
+	if err := r.ParseMultipartForm(256 << 10); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if r.MultipartForm != nil {
+		defer r.MultipartForm.RemoveAll()
+	}
+	if !s.auth.VerifyCSRF(r, session) {
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 	bookingID := strings.TrimSpace(r.FormValue("booking_id"))
@@ -157,13 +169,32 @@ func (s *StudyApp) adminLessonSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	publish := strings.TrimSpace(r.FormValue("action")) == "publish" || current.Published
-	if err := saveLessonMaterial(s.db, bookingID, r.FormValue("title"), r.FormValue("theory"), r.FormValue("homework"), r.FormValue("video_url"), publish); err != nil {
-		data := s.baseData(w, r, "Занятие — KIRILL.STUDY", "admin")
+	theory := r.FormValue("theory")
+	if uploaded, ok, uploadErr := readMarkdownUpload(r, "theory_file", 256<<10); uploadErr != nil {
+		data := s.baseData(w, r, "Занятие — MY.STUDY", "admin")
+		data.CabinetTab = "schedule"
+		data.Error = uploadErr.Error()
+		data.Lesson = current
+		s.populateAdminLessonTests(&data, bookingID)
+		s.populateAdminLessonHomework(&data, bookingID, current.UserID)
+		renderStudy(w, "study_admin_lesson.html", data)
+		return
+	} else if ok {
+		theory = uploaded
+	}
+	homework := current.Homework
+	if _, exists := r.PostForm["homework"]; exists {
+		homework = r.FormValue("homework")
+	}
+	if err := saveLessonMaterial(s.db, bookingID, r.FormValue("title"), theory, homework, r.FormValue("video_url"), publish); err != nil {
+		data := s.baseData(w, r, "Занятие — MY.STUDY", "admin")
 		data.CabinetTab = "schedule"
 		data.Error = err.Error()
 		data.Lesson = current
-		data.Lesson.Title, data.Lesson.Theory, data.Lesson.Homework, data.Lesson.VideoURL = r.FormValue("title"), r.FormValue("theory"), r.FormValue("homework"), r.FormValue("video_url")
+		data.Lesson.Title, data.Lesson.Theory, data.Lesson.Homework, data.Lesson.VideoURL = r.FormValue("title"), theory, homework, r.FormValue("video_url")
+		hydrateLessonMarkdown(&data.Lesson)
 		s.populateAdminLessonTests(&data, bookingID)
+		s.populateAdminLessonHomework(&data, bookingID, current.UserID)
 		renderStudy(w, "study_admin_lesson.html", data)
 		return
 	}

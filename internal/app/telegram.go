@@ -31,7 +31,7 @@ func (n *TelegramNotifier) NotifyBooking(booking StudyBooking) error {
 	if booking.Telegram != "" {
 		contact += " / " + booking.Telegram
 	}
-	text := fmt.Sprintf("Новая запись в KIRILL.STUDY\n\nСтудент: %s\nДата: %s\nВремя: %s (%s)\nКонтакт: %s", booking.UserName, booking.Date, booking.Time, booking.Timezone, contact)
+	text := fmt.Sprintf("Новая запись в MY.STUDY\n\nСтудент: %s\nДата: %s\nВремя: %s (%s)\nКонтакт: %s", booking.UserName, booking.Date, booking.Time, booking.Timezone, contact)
 	if booking.Topic != "" {
 		text += "\nТема: " + booking.Topic
 	}

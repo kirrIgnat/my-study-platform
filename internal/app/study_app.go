@@ -9,40 +9,46 @@ import (
 )
 
 type StudyPageData struct {
-	Title              string
-	Active             string
-	User               *StudyUser
-	CSRF               string
-	Error              string
-	Success            string
-	Courses            []StudyCourse
-	Bookings           []StudyBooking
-	UpcomingBookings   []StudyBooking
-	BookingHistory     []StudyBooking
-	Lessons            []StudyLesson
-	Lesson             StudyLesson
-	Notifications      []StudyNotification
-	Students           []StudyUser
-	Stats              AdminStats
-	Timezone           string
-	Unread             int
-	TemporaryPassword  string
-	PasswordResetUser  string
-	CabinetTab         string
-	StudentSchedule    *TutoringSchedule
-	StudentSchedules   []TutoringSchedule
-	RescheduleRequests []RescheduleRequest
-	PendingReschedules []RescheduleRequest
-	TestTemplates      []TestTemplate
-	TestTemplate       TestTemplate
-	TestAssignments    []TestAssignment
-	TestAssignment     TestAssignment
-	TestAttempt        TestAttempt
-	TestQuestions      []TestQuestionView
-	TestBreakdown      []TestBreakdown
-	TestStarted        bool
-	TestFinished       bool
-	TestAdminView      bool
+	Title                        string
+	Active                       string
+	User                         *StudyUser
+	CSRF                         string
+	Error                        string
+	Success                      string
+	Courses                      []StudyCourse
+	Bookings                     []StudyBooking
+	UpcomingBookings             []StudyBooking
+	BookingHistory               []StudyBooking
+	Lessons                      []StudyLesson
+	Lesson                       StudyLesson
+	HomeworkTasks                []HomeworkTask
+	HomeworkTask                 HomeworkTask
+	HomeworkTaskChoices          []HomeworkTaskChoice
+	HomeworkAssignments          []HomeworkAssignment
+	CompletedHomeworkAssignments []HomeworkAssignment
+	HomeworkAssignment           HomeworkAssignment
+	Notifications                []StudyNotification
+	Students                     []StudyUser
+	Stats                        AdminStats
+	Timezone                     string
+	Unread                       int
+	TemporaryPassword            string
+	PasswordResetUser            string
+	CabinetTab                   string
+	StudentSchedule              *TutoringSchedule
+	StudentSchedules             []TutoringSchedule
+	RescheduleRequests           []RescheduleRequest
+	PendingReschedules           []RescheduleRequest
+	TestTemplates                []TestTemplate
+	TestTemplate                 TestTemplate
+	TestAssignments              []TestAssignment
+	TestAssignment               TestAssignment
+	TestAttempt                  TestAttempt
+	TestQuestions                []TestQuestionView
+	TestBreakdown                []TestBreakdown
+	TestStarted                  bool
+	TestFinished                 bool
+	TestAdminView                bool
 }
 
 type StudyApp struct {
@@ -80,6 +86,11 @@ func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/study/admin/booking/delete", s.adminBookingDelete)
 	mux.HandleFunc("/study/admin/lesson", s.adminLesson)
 	mux.HandleFunc("/study/admin/lesson/save", s.adminLessonSave)
+	mux.HandleFunc("/study/admin/homework", s.adminHomeworkBank)
+	mux.HandleFunc("/study/admin/homework/task/save", s.adminHomeworkTaskSave)
+	mux.HandleFunc("/study/admin/homework/assign", s.adminHomeworkAssign)
+	mux.HandleFunc("/study/admin/homework/status", s.adminHomeworkStatus)
+	mux.HandleFunc("/study/homework", s.studentHomeworkView)
 	mux.HandleFunc("/study/admin/students/password-reset", s.adminResetStudentPassword)
 	mux.HandleFunc("/study/admin/reschedule/resolve", s.adminResolveReschedule)
 	mux.HandleFunc("/study/admin/tests", s.adminTests)
@@ -100,6 +111,8 @@ func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/study/admin/calendar", s.adminCalendarAPI)
 	mux.HandleFunc("/api/study/admin/student", s.adminStudentAPI)
 	mux.HandleFunc("/api/study/admin/lesson/save", s.adminLessonSaveAPI)
+	mux.HandleFunc("/api/study/admin/homework/assign", s.adminHomeworkAssignAPI)
+	mux.HandleFunc("/api/study/admin/homework/status", s.adminHomeworkStatusAPI)
 }
 
 func (s *StudyApp) session(r *http.Request) *UserSession {
@@ -143,5 +156,5 @@ func (s *StudyApp) studyHome(w http.ResponseWriter, r *http.Request) {
 	if !allowMethod(w, r, http.MethodGet, http.MethodHead) {
 		return
 	}
-	renderStudy(w, "study_home.html", s.baseData(w, r, "KIRILL.STUDY — Онлайн-обучение", "home"))
+	renderStudy(w, "study_home.html", s.baseData(w, r, "MY.STUDY — Онлайн-обучение", "home"))
 }

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-io-1">
+</head>
+<body class="study-body admin-body cabinet-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+  <main class="study-main cabinet-main homework-admin-main">
+    <section class="cabinet-heading"><div><span class="study-kicker">HOMEWORK / TASK BANK</span><h1>База задач</h1><p>Задачи хранятся отдельно от уроков, сортируются по теме, языку и сложности и могут назначаться повторно любому ученику.</p></div></section>
+    {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}{{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
+    <section class="homework-bank-layout">
+      <article class="study-panel homework-task-editor">
+        <div class="panel-head"><div><span class="panel-label">{{if .HomeworkTask.ID}}РЕДАКТИРОВАНИЕ{{else}}НОВАЯ ЗАДАЧА{{end}}</span><h2>{{if .HomeworkTask.ID}}{{.HomeworkTask.Title}}{{else}}Добавить в базу{{end}}</h2></div>{{if .HomeworkTask.ID}}<a class="table-action" href="/study/admin/homework">Новая задача →</a>{{end}}</div>
+        <form class="study-form" method="post" action="/study/admin/homework/task/save">
+          <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="task_id" value="{{.HomeworkTask.ID}}">
+          <label><span>Название</span><input type="text" name="title" maxlength="180" value="{{.HomeworkTask.Title}}" placeholder="Например: Два указателя" required></label>
+          <div class="homework-editor-row">
+            <label><span>Тема</span><input type="text" name="topic" maxlength="120" value="{{.HomeworkTask.Topic}}" placeholder="Массивы / Графы / Указатели…" required></label>
+            <label><span>Язык</span><input type="text" name="language" maxlength="40" value="{{if .HomeworkTask.Language}}{{.HomeworkTask.Language}}{{else}}C{{end}}" placeholder="C" required></label>
+            <label><span>Сложность</span><select name="difficulty" required><option value="easy" {{if eq .HomeworkTask.Difficulty "easy"}}selected{{end}}>Лёгкая</option><option value="medium" {{if or (eq .HomeworkTask.Difficulty "medium") (eq .HomeworkTask.Difficulty "")}}selected{{end}}>Средняя</option><option value="hard" {{if eq .HomeworkTask.Difficulty "hard"}}selected{{end}}>Сложная</option></select></label>
+          </div>
+          <label><span>Условие · Markdown</span><textarea name="statement_md" rows="13" maxlength="50000" placeholder="# Условие&#10;&#10;Дан массив...&#10;&#10;```cpp&#10;int main() {&#10;}&#10;```" required>{{.HomeworkTask.StatementMD}}</textarea></label>
+          <div class="homework-io-editor">
+            <label><span>Входные данные · Markdown</span><textarea name="input_md" rows="6" maxlength="12000" placeholder="Одно целое число `N`.">{{.HomeworkTask.InputMD}}</textarea></label>
+            <label><span>Выходные данные · Markdown</span><textarea name="output_md" rows="6" maxlength="12000" placeholder="Выведите сумму в формате `Sum = значение`.">{{.HomeworkTask.OutputMD}}</textarea></label>
+          </div>
+          <label><span>Примеры · Markdown</span><textarea name="examples_md" rows="9" maxlength="30000" placeholder="### Пример 1&#10;&#10;```text&#10;Enter N: 5&#10;Sum = 15&#10;```">{{.HomeworkTask.ExamplesMD}}</textarea></label>
+          <button class="study-button primary wide" type="submit">{{if .HomeworkTask.ID}}Сохранить изменения{{else}}Добавить задачу{{end}}</button>
+        </form>
+      </article>
+
+      <article class="study-panel homework-bank-catalog">
+        <div class="panel-head"><div><span class="panel-label">КАТАЛОГ</span><h2>Все задачи</h2></div><span class="counter">{{len .HomeworkTasks}}</span></div>
+        {{if .HomeworkTasks}}<div class="homework-bank-list">{{range .HomeworkTasks}}<details class="homework-bank-item"><summary><div><div class="task-badges"><span>{{.Topic}}</span>{{if .Language}}<span>{{.Language}}</span>{{end}}<span class="difficulty {{.Difficulty}}">{{.DifficultyLabel}}</span></div><h3>{{.Title}}</h3></div><a class="table-action" href="/study/admin/homework?edit={{.ID}}">Редактировать →</a></summary><div class="homework-bank-preview"><div class="md-content">{{.StatementHTML}}</div>{{if or .InputHTML .OutputHTML}}<div class="task-examples-divider"><span>ВХОД / ВЫХОД</span></div><div class="task-io-grid compact"><div class="task-io-cell"><div class="task-io-title">Вход</div><div class="md-content">{{if .InputHTML}}{{.InputHTML}}{{else}}<p>—</p>{{end}}</div></div><div class="task-io-cell"><div class="task-io-title">Выход</div><div class="md-content">{{if .OutputHTML}}{{.OutputHTML}}{{else}}<p>—</p>{{end}}</div></div></div>{{end}}{{if .ExamplesHTML}}<div class="task-examples-divider"><span>ПРИМЕРЫ</span></div><div class="md-content">{{.ExamplesHTML}}</div>{{end}}</div></details>{{end}}</div>{{else}}<div class="empty-state"><b>База пока пустая</b><span>Создай первую задачу слева.</span></div>{{end}}
+      </article>
+    </section>
+  </main>{{template "study_footer" .}}
+</body>
+</html>

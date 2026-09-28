@@ -1,5 +1,5 @@
 [Unit]
-Description=Cosmic Portfolio and KIRILL.STUDY Go application
+Description=Cosmic Portfolio and MY.STUDY Go application
 Wants=network-online.target
 After=network-online.target postgresql.service
 

@@ -9,7 +9,7 @@ import (
 )
 
 func (s *StudyApp) adminTestsData(w http.ResponseWriter, r *http.Request) StudyPageData {
-	data := s.baseData(w, r, "Тесты — KIRILL.STUDY", "admin")
+	data := s.baseData(w, r, "Тесты — MY.STUDY", "admin")
 	data.CabinetTab = "tests"
 	data.TestTemplates, _ = listTestTemplates(s.db)
 	data.Students, _ = listStudents(s.db)
@@ -38,7 +38,7 @@ func (s *StudyApp) adminTestView(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	data := s.baseData(w, r, test.Title+" — KIRILL.STUDY", "admin")
+	data := s.baseData(w, r, test.Title+" — MY.STUDY", "admin")
 	data.CabinetTab = "tests"
 	data.TestTemplate = test
 	data.Students, _ = listStudents(s.db)
@@ -90,7 +90,7 @@ func (s *StudyApp) renderTestAssignError(w http.ResponseWriter, r *http.Request,
 	if bookingID != "" {
 		lesson, err := getAdminLesson(s.db, bookingID, s.loc)
 		if err == nil {
-			data := s.baseData(w, r, "Занятие — KIRILL.STUDY", "admin")
+			data := s.baseData(w, r, "Занятие — MY.STUDY", "admin")
 			data.CabinetTab = "schedule"
 			data.Lesson = lesson
 			data.Error = message
@@ -121,7 +121,7 @@ func (s *StudyApp) adminTestResult(w http.ResponseWriter, r *http.Request) {
 	}
 	attempt, err := getTestAttemptByAssignment(s.db, assignment.ID)
 	if err != nil || attempt.ID == "" {
-		data := s.baseData(w, r, "Результат теста — KIRILL.STUDY", "admin")
+		data := s.baseData(w, r, "Результат теста — MY.STUDY", "admin")
 		data.CabinetTab = "tests"
 		data.TestAdminView = true
 		data.TestAssignment = assignment
@@ -182,7 +182,7 @@ func (s *StudyApp) studyTest(w http.ResponseWriter, r *http.Request) {
 		assignment, _ = getTestAssignment(s.db, assignment.ID, s.loc)
 	}
 
-	data := s.baseData(w, r, test.Title+" — KIRILL.STUDY", "account")
+	data := s.baseData(w, r, test.Title+" — MY.STUDY", "account")
 	data.CabinetTab = "materials"
 	data.TestTemplate = test
 	data.TestAssignment = assignment
@@ -237,7 +237,7 @@ func (s *StudyApp) studyTestStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := startTestAttempt(s.db, assignment); err != nil {
-		data := s.baseData(w, r, assignment.TestTitle+" — KIRILL.STUDY", "account")
+		data := s.baseData(w, r, assignment.TestTitle+" — MY.STUDY", "account")
 		data.CabinetTab = "materials"
 		data.TestAssignment = assignment
 		data.TestTemplate, _ = getTestTemplate(s.db, assignment.TestID)

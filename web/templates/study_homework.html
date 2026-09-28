@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-io-1">
+</head>
+<body class="study-body cabinet-body">
+  <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+  <main class="study-main homework-view-main">
+    <a class="back-link" href="/study/account?tab=materials">← Все материалы и ДЗ</a>
+    <section class="study-panel homework-task-hero">
+      <div><div class="task-badges"><span>{{.HomeworkAssignment.Task.Topic}}</span>{{if .HomeworkAssignment.Task.Language}}<span>{{.HomeworkAssignment.Task.Language}}</span>{{end}}<span class="difficulty {{.HomeworkAssignment.Task.Difficulty}}">{{.HomeworkAssignment.Task.DifficultyLabel}}</span></div><h1>{{.HomeworkAssignment.Task.Title}}</h1><p>Назначено {{.HomeworkAssignment.AssignedAt.Format "02.01.2006"}}</p></div><span class="status-pill homework-{{.HomeworkAssignment.Status}}">{{.HomeworkAssignment.StatusLabel}}</span>
+    </section>
+    {{if .HomeworkAssignment.TeacherNote}}<section class="study-panel homework-teacher-note"><span class="panel-label">КОММЕНТАРИЙ ПРЕПОДАВАТЕЛЯ</span><p>{{.HomeworkAssignment.TeacherNote}}</p></section>{{end}}
+    <section class="study-panel homework-statement"><div class="panel-head"><div><span class="panel-label">ЗАДАЧА</span><h2>Условие</h2></div></div><div class="md-content homework-md">{{.HomeworkAssignment.Task.StatementHTML}}</div></section>
+    {{if or .HomeworkAssignment.Task.InputHTML .HomeworkAssignment.Task.OutputHTML}}
+    <section class="study-panel homework-statement homework-io-panel">
+      <div class="panel-head"><div><span class="panel-label">ФОРМАТ</span><h2>Входные и выходные данные</h2></div></div>
+      <div class="task-io-grid">
+        <article class="task-io-cell"><div class="task-io-title">Вход</div><div class="md-content homework-md">{{if .HomeworkAssignment.Task.InputHTML}}{{.HomeworkAssignment.Task.InputHTML}}{{else}}<p>Нет дополнительных требований.</p>{{end}}</div></article>
+        <article class="task-io-cell"><div class="task-io-title">Выход</div><div class="md-content homework-md">{{if .HomeworkAssignment.Task.OutputHTML}}{{.HomeworkAssignment.Task.OutputHTML}}{{else}}<p>Нет дополнительных требований.</p>{{end}}</div></article>
+      </div>
+    </section>
+    {{end}}
+    {{if .HomeworkAssignment.Task.ExamplesHTML}}<section class="study-panel homework-statement"><div class="panel-head"><div><span class="panel-label">ПРИМЕРЫ</span><h2>Примеры</h2></div></div><div class="md-content homework-md">{{.HomeworkAssignment.Task.ExamplesHTML}}</div></section>{{end}}
+
+  </main>{{template "study_footer" .}}
+</body>
+</html>
