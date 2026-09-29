@@ -91,6 +91,7 @@ func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/study/admin/homework/assign", s.adminHomeworkAssign)
 	mux.HandleFunc("/study/admin/homework/status", s.adminHomeworkStatus)
 	mux.HandleFunc("/study/homework", s.studentHomeworkView)
+	mux.HandleFunc("/study/homework/submit", s.studentHomeworkSubmit)
 	mux.HandleFunc("/study/admin/students/password-reset", s.adminResetStudentPassword)
 	mux.HandleFunc("/study/admin/reschedule/resolve", s.adminResolveReschedule)
 	mux.HandleFunc("/study/admin/tests", s.adminTests)

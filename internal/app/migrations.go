@@ -160,6 +160,7 @@ func migrateStudyDB(db *AppDB) error {
 		`CREATE INDEX IF NOT EXISTS lesson_materials_published_idx ON lesson_materials(published, published_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS homework_tasks (
             id TEXT PRIMARY KEY,
+            public_id TEXT NOT NULL DEFAULT '',
             title TEXT NOT NULL,
             topic TEXT NOT NULL,
             language TEXT NOT NULL DEFAULT '',
@@ -174,9 +175,11 @@ func migrateStudyDB(db *AppDB) error {
             updated_at BIGINT NOT NULL
         )`,
 		`ALTER TABLE homework_tasks ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE homework_tasks ADD COLUMN IF NOT EXISTS public_id TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE homework_tasks ADD COLUMN IF NOT EXISTS input_md TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE homework_tasks ADD COLUMN IF NOT EXISTS output_md TEXT NOT NULL DEFAULT ''`,
 		`CREATE INDEX IF NOT EXISTS homework_tasks_catalog_idx ON homework_tasks(active,topic,difficulty,title)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS homework_tasks_public_id_unique ON homework_tasks(public_id) WHERE public_id<>''`,
 		`CREATE TABLE IF NOT EXISTS homework_assignments (
             id TEXT PRIMARY KEY,
             task_id TEXT NOT NULL REFERENCES homework_tasks(id) ON DELETE RESTRICT,
@@ -285,6 +288,9 @@ func migrateStudyDB(db *AppDB) error {
 		if err := seedCHomeworkTasks(tx, now); err != nil {
 			return fmt.Errorf("seed C homework tasks: %w", err)
 		}
+		if err := backfillHomeworkPublicIDs(tx); err != nil {
+			return fmt.Errorf("backfill homework public IDs: %w", err)
+		}
 		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 1, now); err != nil {
 			return err
 		}
@@ -300,7 +306,10 @@ func migrateStudyDB(db *AppDB) error {
 		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 5, now); err != nil {
 			return err
 		}
-		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 6, now)
+		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 6, now); err != nil {
+			return err
+		}
+		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 7, now)
 	})
 }
 

@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-io-1">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-submit-1">
 </head>
 <body class="study-body admin-body cabinet-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
@@ -15,6 +15,7 @@
         <div class="panel-head"><div><span class="panel-label">{{if .HomeworkTask.ID}}РЕДАКТИРОВАНИЕ{{else}}НОВАЯ ЗАДАЧА{{end}}</span><h2>{{if .HomeworkTask.ID}}{{.HomeworkTask.Title}}{{else}}Добавить в базу{{end}}</h2></div>{{if .HomeworkTask.ID}}<a class="table-action" href="/study/admin/homework">Новая задача →</a>{{end}}</div>
         <form class="study-form" method="post" action="/study/admin/homework/task/save">
           <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="task_id" value="{{.HomeworkTask.ID}}">
+          {{if .HomeworkTask.ID}}<label><span>ID задачи</span><input type="text" name="public_id" maxlength="32" value="{{.HomeworkTask.PublicID}}" pattern="id_t[1-9][0-9]*" placeholder="id_t1" required><small>Показывается ученику и используется в имени файла. Формат: id_t1, id_t2, id_t3…</small></label>{{else}}<div class="homework-id-auto"><span>ID задачи</span><b>Присвоится автоматически</b><small>Будет взят максимальный существующий номер id_tN и увеличен на 1.</small></div>{{end}}
           <label><span>Название</span><input type="text" name="title" maxlength="180" value="{{.HomeworkTask.Title}}" placeholder="Например: Два указателя" required></label>
           <div class="homework-editor-row">
             <label><span>Тема</span><input type="text" name="topic" maxlength="120" value="{{.HomeworkTask.Topic}}" placeholder="Массивы / Графы / Указатели…" required></label>
@@ -33,7 +34,7 @@
 
       <article class="study-panel homework-bank-catalog">
         <div class="panel-head"><div><span class="panel-label">КАТАЛОГ</span><h2>Все задачи</h2></div><span class="counter">{{len .HomeworkTasks}}</span></div>
-        {{if .HomeworkTasks}}<div class="homework-bank-list">{{range .HomeworkTasks}}<details class="homework-bank-item"><summary><div><div class="task-badges"><span>{{.Topic}}</span>{{if .Language}}<span>{{.Language}}</span>{{end}}<span class="difficulty {{.Difficulty}}">{{.DifficultyLabel}}</span></div><h3>{{.Title}}</h3></div><a class="table-action" href="/study/admin/homework?edit={{.ID}}">Редактировать →</a></summary><div class="homework-bank-preview"><div class="md-content">{{.StatementHTML}}</div>{{if or .InputHTML .OutputHTML}}<div class="task-examples-divider"><span>ВХОД / ВЫХОД</span></div><div class="task-io-grid compact"><div class="task-io-cell"><div class="task-io-title">Вход</div><div class="md-content">{{if .InputHTML}}{{.InputHTML}}{{else}}<p>—</p>{{end}}</div></div><div class="task-io-cell"><div class="task-io-title">Выход</div><div class="md-content">{{if .OutputHTML}}{{.OutputHTML}}{{else}}<p>—</p>{{end}}</div></div></div>{{end}}{{if .ExamplesHTML}}<div class="task-examples-divider"><span>ПРИМЕРЫ</span></div><div class="md-content">{{.ExamplesHTML}}</div>{{end}}</div></details>{{end}}</div>{{else}}<div class="empty-state"><b>База пока пустая</b><span>Создай первую задачу слева.</span></div>{{end}}
+        {{if .HomeworkTasks}}<div class="homework-bank-list">{{range .HomeworkTasks}}<details class="homework-bank-item"><summary><div><div class="task-badges"><span class="task-public-id">{{.PublicID}}</span><span>{{.Topic}}</span>{{if .Language}}<span>{{.Language}}</span>{{end}}<span class="difficulty {{.Difficulty}}">{{.DifficultyLabel}}</span></div><h3>{{.Title}}</h3></div><a class="table-action" href="/study/admin/homework?edit={{.ID}}">Редактировать →</a></summary><div class="homework-bank-preview"><div class="md-content">{{.StatementHTML}}</div>{{if or .InputHTML .OutputHTML}}<div class="task-examples-divider"><span>ВХОД / ВЫХОД</span></div><div class="task-io-grid compact"><div class="task-io-cell"><div class="task-io-title">Вход</div><div class="md-content">{{if .InputHTML}}{{.InputHTML}}{{else}}<p>—</p>{{end}}</div></div><div class="task-io-cell"><div class="task-io-title">Выход</div><div class="md-content">{{if .OutputHTML}}{{.OutputHTML}}{{else}}<p>—</p>{{end}}</div></div></div>{{end}}{{if .ExamplesHTML}}<div class="task-examples-divider"><span>ПРИМЕРЫ</span></div><div class="md-content">{{.ExamplesHTML}}</div>{{end}}</div></details>{{end}}</div>{{else}}<div class="empty-state"><b>База пока пустая</b><span>Создай первую задачу слева.</span></div>{{end}}
       </article>
     </section>
   </main>{{template "study_footer" .}}

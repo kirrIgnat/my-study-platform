@@ -3,8 +3,8 @@ package app
 import "testing"
 
 func TestCHomeworkSeedCatalog(t *testing.T) {
-	if len(cHomeworkSeedTasks) != 14 {
-		t.Fatalf("seed task count = %d, want 14", len(cHomeworkSeedTasks))
+	if len(cHomeworkSeedTasks) != 25 {
+		t.Fatalf("seed task count = %d, want 25", len(cHomeworkSeedTasks))
 	}
 	seen := make(map[string]bool, len(cHomeworkSeedTasks))
 	for _, task := range cHomeworkSeedTasks {
@@ -18,8 +18,8 @@ func TestCHomeworkSeedCatalog(t *testing.T) {
 		if task.Language != "C" {
 			t.Fatalf("task %s language = %q, want C", task.ID, task.Language)
 		}
-		if task.Difficulty != "easy" {
-			t.Fatalf("task %s difficulty = %q, want easy", task.ID, task.Difficulty)
+		if task.Difficulty != "easy" && task.Difficulty != "medium" {
+			t.Fatalf("task %s difficulty = %q, want easy or medium", task.ID, task.Difficulty)
 		}
 	}
 }

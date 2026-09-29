@@ -7,11 +7,36 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+func decorateHomeworkAssignment(assignment *HomeworkAssignment, loc *time.Location) {
+	if assignment == nil {
+		return
+	}
+	if loc == nil {
+		loc = time.UTC
+	}
+	assignment.HomeworkDir = "homework/hw_" + assignment.AssignedAt.In(loc).Format("02012006")
+	language := defaultHomeworkCodeLanguage(assignment.Task.Language)
+	if assignment.Submission != nil && assignment.Submission.Language != "" {
+		if submittedLanguage, err := normalizeHomeworkCodeLanguage(assignment.Submission.Language); err == nil {
+			language = submittedLanguage
+		}
+	}
+	assignment.CodeLanguage = language
+	assignment.SourceFilename = assignment.Task.PublicID + homeworkSourceExtension(language)
+	if assignment.Submission != nil {
+		assignment.Submission.Filename = assignment.Task.PublicID + homeworkSourceExtension(assignment.Submission.Language)
+	}
+}
 
 func (s *StudyApp) populateAdminLessonHomework(data *StudyPageData, bookingID, userID string) {
 	data.HomeworkTaskChoices, _ = listHomeworkTaskChoicesForStudent(s.db, userID, bookingID)
 	data.HomeworkAssignments, _ = listHomeworkAssignmentsForBooking(s.db, bookingID)
+	for i := range data.HomeworkAssignments {
+		decorateHomeworkAssignment(&data.HomeworkAssignments[i], s.loc)
+	}
 	data.Lesson.HomeworkAssignments = data.HomeworkAssignments
 }
 
@@ -58,13 +83,13 @@ func (s *StudyApp) adminHomeworkTaskSave(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	taskID := strings.TrimSpace(r.FormValue("task_id"))
-	_, err := saveHomeworkTask(s.db, session.User.ID, taskID, r.FormValue("title"), r.FormValue("topic"), r.FormValue("language"), r.FormValue("difficulty"), r.FormValue("statement_md"), r.FormValue("input_md"), r.FormValue("output_md"), r.FormValue("examples_md"))
+	_, err := saveHomeworkTask(s.db, session.User.ID, taskID, r.FormValue("public_id"), r.FormValue("title"), r.FormValue("topic"), r.FormValue("language"), r.FormValue("difficulty"), r.FormValue("statement_md"), r.FormValue("input_md"), r.FormValue("output_md"), r.FormValue("examples_md"))
 	if err != nil {
 		data := s.baseData(w, r, "База задач — MY.STUDY", "admin")
 		data.CabinetTab = "homework"
 		data.Error = err.Error()
 		data.HomeworkTasks, _ = listHomeworkTasks(s.db, true)
-		data.HomeworkTask = HomeworkTask{ID: taskID, Title: r.FormValue("title"), Topic: r.FormValue("topic"), Language: r.FormValue("language"), Difficulty: r.FormValue("difficulty"), StatementMD: r.FormValue("statement_md"), InputMD: r.FormValue("input_md"), OutputMD: r.FormValue("output_md"), ExamplesMD: r.FormValue("examples_md"), Active: true}
+		data.HomeworkTask = HomeworkTask{ID: taskID, PublicID: r.FormValue("public_id"), Title: r.FormValue("title"), Topic: r.FormValue("topic"), Language: r.FormValue("language"), Difficulty: r.FormValue("difficulty"), StatementMD: r.FormValue("statement_md"), InputMD: r.FormValue("input_md"), OutputMD: r.FormValue("output_md"), ExamplesMD: r.FormValue("examples_md"), Active: true}
 		renderStudy(w, "study_admin_homework.html", data)
 		return
 	}
@@ -158,9 +183,57 @@ func (s *StudyApp) studentHomeworkView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := s.baseData(w, r, assignment.Task.Title+" — MY.STUDY", "account")
+	decorateHomeworkAssignment(&assignment, s.loc)
 	data.CabinetTab = "materials"
 	data.HomeworkAssignment = assignment
+	if r.URL.Query().Get("sent") == "1" {
+		data.Success = "Код отправлен преподавателю на проверку."
+	}
 	renderStudy(w, "study_homework.html", data)
+}
+
+func (s *StudyApp) studentHomeworkSubmit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
+		return
+	}
+	session := s.session(r)
+	if session == nil {
+		http.Redirect(w, r, "/study/login", http.StatusSeeOther)
+		return
+	}
+	if session.User.Role != "student" {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 300<<10)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if !s.auth.VerifyCSRF(r, session) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	assignmentID := strings.TrimSpace(r.FormValue("assignment_id"))
+	language := r.FormValue("language")
+	sourceCode := r.FormValue("source_code")
+	if err := submitHomeworkSolution(s.db, session.User.ID, assignmentID, language, sourceCode); err != nil {
+		assignment, loadErr := getHomeworkAssignmentForStudent(s.db, assignmentID, session.User.ID)
+		if loadErr != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		assignment.Submission = &HomeworkSubmission{Language: language, SourceCode: sourceCode}
+		decorateHomeworkAssignment(&assignment, s.loc)
+		data := s.baseData(w, r, assignment.Task.Title+" — MY.STUDY", "account")
+		data.CabinetTab = "materials"
+		data.HomeworkAssignment = assignment
+		data.Error = err.Error()
+		renderStudy(w, "study_homework.html", data)
+		return
+	}
+	http.Redirect(w, r, "/study/homework?id="+assignmentID+"&sent=1", http.StatusSeeOther)
 }
 
 func readMarkdownUpload(r *http.Request, field string, maxBytes int64) (string, bool, error) {

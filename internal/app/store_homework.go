@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -34,21 +35,94 @@ func homeworkStatusLabel(value string) string {
 	}
 }
 
+func homeworkPublicIDNumber(value string) (int, bool) {
+	value = strings.TrimSpace(strings.ToLower(value))
+	if !strings.HasPrefix(value, "id_t") {
+		return 0, false
+	}
+	raw := strings.TrimPrefix(value, "id_t")
+	if raw == "" || (len(raw) > 1 && raw[0] == '0') {
+		return 0, false
+	}
+	for _, r := range raw {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		return 0, false
+	}
+	return n, true
+}
+
+func normalizeHomeworkPublicID(value string) (string, error) {
+	value = strings.TrimSpace(strings.ToLower(value))
+	if _, ok := homeworkPublicIDNumber(value); !ok {
+		return "", errors.New("ID задачи должен быть в формате id_t1, id_t2, id_t3 ...")
+	}
+	return value, nil
+}
+
+func nextHomeworkPublicID(db dbExecutor) (string, error) {
+	rows, err := db.query(`SELECT public_id FROM homework_tasks WHERE public_id<>''`)
+	if err != nil {
+		return "", err
+	}
+	maxNumber := 0
+	for _, row := range rows {
+		if len(row) == 0 {
+			continue
+		}
+		if n, ok := homeworkPublicIDNumber(row[0]); ok && n > maxNumber {
+			maxNumber = n
+		}
+	}
+	return fmt.Sprintf("id_t%d", maxNumber+1), nil
+}
+
+func backfillHomeworkPublicIDs(db dbExecutor) error {
+	rows, err := db.query(`SELECT id,public_id FROM homework_tasks ORDER BY created_at,id`)
+	if err != nil {
+		return err
+	}
+	maxNumber := 0
+	for _, row := range rows {
+		if len(row) < 2 {
+			continue
+		}
+		if n, ok := homeworkPublicIDNumber(row[1]); ok && n > maxNumber {
+			maxNumber = n
+		}
+	}
+	for _, row := range rows {
+		if len(row) < 2 || strings.TrimSpace(row[1]) != "" {
+			continue
+		}
+		maxNumber++
+		if err := db.exec(`UPDATE homework_tasks SET public_id=? WHERE id=? AND public_id=''`, fmt.Sprintf("id_t%d", maxNumber), row[0]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func homeworkTaskFromRow(row []string) HomeworkTask {
 	task := HomeworkTask{
 		ID:              row[0],
-		Title:           row[1],
-		Topic:           row[2],
-		Language:        row[3],
-		Difficulty:      row[4],
-		DifficultyLabel: homeworkDifficultyLabel(row[4]),
-		StatementMD:     row[5],
-		InputMD:         row[6],
-		OutputMD:        row[7],
-		ExamplesMD:      row[8],
-		Active:          row[9] == "1",
-		CreatedAt:       time.Unix(parseInt64(row[10]), 0).UTC(),
-		UpdatedAt:       time.Unix(parseInt64(row[11]), 0).UTC(),
+		PublicID:        row[1],
+		Title:           row[2],
+		Topic:           row[3],
+		Language:        row[4],
+		Difficulty:      row[5],
+		DifficultyLabel: homeworkDifficultyLabel(row[5]),
+		StatementMD:     row[6],
+		InputMD:         row[7],
+		OutputMD:        row[8],
+		ExamplesMD:      row[9],
+		Active:          row[10] == "1",
+		CreatedAt:       time.Unix(parseInt64(row[11]), 0).UTC(),
+		UpdatedAt:       time.Unix(parseInt64(row[12]), 0).UTC(),
 	}
 	task.StatementHTML = renderStudyMarkdown(task.StatementMD)
 	task.InputHTML = renderStudyMarkdown(task.InputMD)
@@ -58,7 +132,7 @@ func homeworkTaskFromRow(row []string) HomeworkTask {
 }
 
 func listHomeworkTasks(db *AppDB, includeArchived bool) ([]HomeworkTask, error) {
-	query := `SELECT id,title,topic,language,difficulty,statement_md,input_md,output_md,examples_md,active,created_at,updated_at FROM homework_tasks`
+	query := `SELECT id,public_id,title,topic,language,difficulty,statement_md,input_md,output_md,examples_md,active,created_at,updated_at FROM homework_tasks`
 	if !includeArchived {
 		query += ` WHERE active=1`
 	}
@@ -75,7 +149,7 @@ func listHomeworkTasks(db *AppDB, includeArchived bool) ([]HomeworkTask, error) 
 }
 
 func getHomeworkTask(db *AppDB, taskID string) (HomeworkTask, error) {
-	rows, err := db.Query(`SELECT id,title,topic,language,difficulty,statement_md,input_md,output_md,examples_md,active,created_at,updated_at FROM homework_tasks WHERE id=? LIMIT 1`, taskID)
+	rows, err := db.Query(`SELECT id,public_id,title,topic,language,difficulty,statement_md,input_md,output_md,examples_md,active,created_at,updated_at FROM homework_tasks WHERE id=? LIMIT 1`, taskID)
 	if err != nil {
 		return HomeworkTask{}, err
 	}
@@ -85,7 +159,7 @@ func getHomeworkTask(db *AppDB, taskID string) (HomeworkTask, error) {
 	return homeworkTaskFromRow(rows[0]), nil
 }
 
-func saveHomeworkTask(db *AppDB, adminID, taskID, title, topic, language, difficulty, statementMD, inputMD, outputMD, examplesMD string) (string, error) {
+func saveHomeworkTask(db *AppDB, adminID, taskID, publicID, title, topic, language, difficulty, statementMD, inputMD, outputMD, examplesMD string) (string, error) {
 	title = strings.TrimSpace(title)
 	topic = strings.TrimSpace(topic)
 	language = strings.TrimSpace(language)
@@ -94,6 +168,7 @@ func saveHomeworkTask(db *AppDB, adminID, taskID, title, topic, language, diffic
 	inputMD = strings.TrimSpace(inputMD)
 	outputMD = strings.TrimSpace(outputMD)
 	examplesMD = strings.TrimSpace(examplesMD)
+	publicID = strings.TrimSpace(publicID)
 	if title == "" || topic == "" || language == "" || statementMD == "" {
 		return "", errors.New("укажите название, тему, язык и условие задачи")
 	}
@@ -105,18 +180,60 @@ func saveHomeworkTask(db *AppDB, adminID, taskID, title, topic, language, diffic
 	}
 	now := time.Now().UTC().Unix()
 	if taskID == "" {
-		var err error
-		taskID, err = randomToken(12)
+		var newTaskID string
+		err := db.WithTx(func(tx *dbTx) error {
+			if err := tx.exec(`LOCK TABLE homework_tasks IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+				return err
+			}
+			if publicID == "" {
+				var err error
+				publicID, err = nextHomeworkPublicID(tx)
+				if err != nil {
+					return err
+				}
+			} else {
+				var err error
+				publicID, err = normalizeHomeworkPublicID(publicID)
+				if err != nil {
+					return err
+				}
+			}
+			var err error
+			newTaskID, err = randomToken(12)
+			if err != nil {
+				return err
+			}
+			if err := tx.exec(`INSERT INTO homework_tasks(id,public_id,title,topic,language,difficulty,statement_md,input_md,output_md,examples_md,active,created_by,created_at,updated_at)
+				VALUES(?,?,?,?,?,?,?,?,?,?,1,?,?,?)`, newTaskID, publicID, title, topic, language, difficulty, statementMD, inputMD, outputMD, examplesMD, adminID, now, now); err != nil {
+				if isDBConstraint(err) {
+					return errors.New("такой ID задачи уже используется")
+				}
+				return err
+			}
+			return nil
+		})
 		if err != nil {
 			return "", err
 		}
-		if err := db.Exec(`INSERT INTO homework_tasks(id,title,topic,language,difficulty,statement_md,input_md,output_md,examples_md,active,created_by,created_at,updated_at)
-			VALUES(?,?,?,?,?,?,?,?,?,1,?,?,?)`, taskID, title, topic, language, difficulty, statementMD, inputMD, outputMD, examplesMD, adminID, now, now); err != nil {
-			return "", err
-		}
-		return taskID, nil
+		return newTaskID, nil
 	}
-	if err := db.Exec(`UPDATE homework_tasks SET title=?,topic=?,language=?,difficulty=?,statement_md=?,input_md=?,output_md=?,examples_md=?,updated_at=? WHERE id=?`, title, topic, language, difficulty, statementMD, inputMD, outputMD, examplesMD, now, taskID); err != nil {
+
+	var err error
+	publicID, err = normalizeHomeworkPublicID(publicID)
+	if err != nil {
+		return "", err
+	}
+	rows, err := db.Query(`SELECT id FROM homework_tasks WHERE public_id=? AND id<>? LIMIT 1`, publicID, taskID)
+	if err != nil {
+		return "", err
+	}
+	if len(rows) > 0 {
+		return "", errors.New("такой ID задачи уже используется")
+	}
+	if err := db.Exec(`UPDATE homework_tasks SET public_id=?,title=?,topic=?,language=?,difficulty=?,statement_md=?,input_md=?,output_md=?,examples_md=?,updated_at=? WHERE id=?`, publicID, title, topic, language, difficulty, statementMD, inputMD, outputMD, examplesMD, now, taskID); err != nil {
+		if isDBConstraint(err) {
+			return "", errors.New("такой ID задачи уже используется")
+		}
 		return "", err
 	}
 	return taskID, nil
@@ -279,18 +396,97 @@ func assignHomeworkTasks(db *AppDB, adminID, userID, bookingID string, taskIDs [
 	return assigned, err
 }
 
+func normalizeHomeworkCodeLanguage(value string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "c":
+		return "C", nil
+	case "c++", "cpp", "cxx":
+		return "C++", nil
+	case "go", "golang":
+		return "Go", nil
+	case "python", "python3", "py":
+		return "Python", nil
+	default:
+		return "", errors.New("выберите язык: C, C++, Go или Python")
+	}
+}
+
+func defaultHomeworkCodeLanguage(taskLanguage string) string {
+	language, err := normalizeHomeworkCodeLanguage(taskLanguage)
+	if err == nil {
+		return language
+	}
+	return "C"
+}
+
+func homeworkSourceExtension(language string) string {
+	language, _ = normalizeHomeworkCodeLanguage(language)
+	switch language {
+	case "C++":
+		return ".cpp"
+	case "Go":
+		return ".go"
+	case "Python":
+		return ".py"
+	default:
+		return ".c"
+	}
+}
+
 func homeworkAssignmentFromRow(row []string) HomeworkAssignment {
 	assignment := HomeworkAssignment{
 		ID: row[0], TaskID: row[1], UserID: row[2], BookingID: row[3], AssignedBy: row[4], Status: row[5],
 		StatusLabel: homeworkStatusLabel(row[5]), TeacherNote: row[6], AssignedAt: time.Unix(parseInt64(row[7]), 0).UTC(), UpdatedAt: time.Unix(parseInt64(row[8]), 0).UTC(),
 	}
-	assignment.Task = homeworkTaskFromRow(row[9:21])
+	assignment.Task = homeworkTaskFromRow(row[9:22])
 	return assignment
 }
 
 const homeworkAssignmentSelect = `SELECT a.id,a.task_id,a.user_id,COALESCE(a.booking_id,''),COALESCE(a.assigned_by,''),a.status,a.teacher_note,a.assigned_at,a.updated_at,
-	t.id,t.title,t.topic,t.language,t.difficulty,t.statement_md,t.input_md,t.output_md,t.examples_md,t.active,t.created_at,t.updated_at
+	t.id,t.public_id,t.title,t.topic,t.language,t.difficulty,t.statement_md,t.input_md,t.output_md,t.examples_md,t.active,t.created_at,t.updated_at
 	FROM homework_assignments a JOIN homework_tasks t ON t.id=a.task_id`
+
+func homeworkSubmissionFromRow(row []string) HomeworkSubmission {
+	submission := HomeworkSubmission{
+		ID: row[0], AssignmentID: row[1], UserID: row[2], Language: row[3], SourceCode: row[4], Status: row[5], ResultText: row[6],
+		CreatedAt: time.Unix(parseInt64(row[7]), 0).UTC(), UpdatedAt: time.Unix(parseInt64(row[8]), 0).UTC(),
+	}
+	if submittedAt := parseInt64(row[9]); submittedAt > 0 {
+		submission.SubmittedAt = time.Unix(submittedAt, 0).UTC()
+	}
+	return submission
+}
+
+func attachLatestHomeworkSubmissions(db *AppDB, assignments []HomeworkAssignment, where string, arg string) error {
+	if len(assignments) == 0 {
+		return nil
+	}
+	rows, err := db.Query(`SELECT s.id,s.assignment_id,s.user_id,s.language,s.source_code,s.status,s.result_text,s.created_at,s.updated_at,COALESCE(s.submitted_at,0)
+		FROM homework_submissions s JOIN homework_assignments a ON a.id=s.assignment_id WHERE `+where+` ORDER BY s.created_at DESC`, arg)
+	if err != nil {
+		return err
+	}
+	byID := make(map[string]int, len(assignments))
+	for i := range assignments {
+		byID[assignments[i].ID] = i
+	}
+	for _, row := range rows {
+		if len(row) < 10 {
+			continue
+		}
+		idx, ok := byID[row[1]]
+		if !ok || assignments[idx].Submission != nil {
+			continue
+		}
+		submission := homeworkSubmissionFromRow(row)
+		submission.Filename = assignments[idx].Task.PublicID + homeworkSourceExtension(submission.Language)
+		assignments[idx].Submission = &submission
+		if assignments[idx].Status == "assigned" && (submission.Status == "submitted" || submission.Status == "checking") {
+			assignments[idx].StatusLabel = "На проверке"
+		}
+	}
+	return nil
+}
 
 func listHomeworkAssignmentsForStudent(db *AppDB, userID string) ([]HomeworkAssignment, error) {
 	rows, err := db.Query(homeworkAssignmentSelect+` WHERE a.user_id=? ORDER BY a.assigned_at DESC`, userID)
@@ -300,6 +496,9 @@ func listHomeworkAssignmentsForStudent(db *AppDB, userID string) ([]HomeworkAssi
 	result := make([]HomeworkAssignment, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, homeworkAssignmentFromRow(row))
+	}
+	if err := attachLatestHomeworkSubmissions(db, result, `a.user_id=?`, userID); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
@@ -313,6 +512,9 @@ func listHomeworkAssignmentsForBooking(db *AppDB, bookingID string) ([]HomeworkA
 	for _, row := range rows {
 		result = append(result, homeworkAssignmentFromRow(row))
 	}
+	if err := attachLatestHomeworkSubmissions(db, result, `a.booking_id=?`, bookingID); err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -324,7 +526,58 @@ func getHomeworkAssignmentForStudent(db *AppDB, assignmentID, userID string) (Ho
 	if len(rows) == 0 {
 		return HomeworkAssignment{}, errors.New("домашнее задание не найдено")
 	}
-	return homeworkAssignmentFromRow(rows[0]), nil
+	result := []HomeworkAssignment{homeworkAssignmentFromRow(rows[0])}
+	if err := attachLatestHomeworkSubmissions(db, result, `a.id=?`, assignmentID); err != nil {
+		return HomeworkAssignment{}, err
+	}
+	return result[0], nil
+}
+
+func submitHomeworkSolution(db *AppDB, userID, assignmentID, language, sourceCode string) error {
+	assignmentID = strings.TrimSpace(assignmentID)
+	if assignmentID == "" {
+		return errors.New("домашнее задание не найдено")
+	}
+	var err error
+	language, err = normalizeHomeworkCodeLanguage(language)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(sourceCode) == "" {
+		return errors.New("вставьте код решения")
+	}
+	if len(sourceCode) > 250000 {
+		return errors.New("код слишком большой: максимум 250 КБ")
+	}
+	now := time.Now().UTC().Unix()
+	return db.WithTx(func(tx *dbTx) error {
+		rows, err := tx.query(`SELECT a.status,COALESCE(a.booking_id,''),t.title,t.public_id,u.name
+			FROM homework_assignments a JOIN homework_tasks t ON t.id=a.task_id JOIN users u ON u.id=a.user_id
+			WHERE a.id=? AND a.user_id=? LIMIT 1`, assignmentID, userID)
+		if err != nil {
+			return err
+		}
+		if len(rows) == 0 {
+			return errors.New("домашнее задание не найдено")
+		}
+		if rows[0][0] == "correct" {
+			return errors.New("эта задача уже зачтена преподавателем")
+		}
+		submissionID, err := randomToken(12)
+		if err != nil {
+			return err
+		}
+		if err := tx.exec(`INSERT INTO homework_submissions(id,assignment_id,user_id,language,source_code,status,result_text,created_at,updated_at,submitted_at)
+			VALUES(?,?,?,?,?,'submitted','',?,?,?)`, submissionID, assignmentID, userID, language, sourceCode, now, now, now); err != nil {
+			return err
+		}
+		if err := tx.exec(`UPDATE homework_assignments SET status='assigned',updated_at=? WHERE id=?`, now, assignmentID); err != nil {
+			return err
+		}
+		filename := rows[0][3] + homeworkSourceExtension(language)
+		body := fmt.Sprintf("%s отправил решение задачи %s «%s» (%s, файл %s).", rows[0][4], rows[0][3], rows[0][2], language, filename)
+		return notifyAdminsTx(tx, "homework_submitted", "Код отправлен на проверку", body, rows[0][1], "", now)
+	})
 }
 
 func updateHomeworkAssignmentStatus(db *AppDB, adminID, assignmentID, status, note string) error {
@@ -347,6 +600,15 @@ func updateHomeworkAssignmentStatus(db *AppDB, adminID, assignmentID, status, no
 		if err := tx.exec(`UPDATE homework_assignments SET status=?,teacher_note=?,updated_at=? WHERE id=?`, status, note, now, assignmentID); err != nil {
 			return err
 		}
+		if status == "correct" || status == "incorrect" {
+			submissionStatus := "accepted"
+			if status == "incorrect" {
+				submissionStatus = "wrong_answer"
+			}
+			if err := tx.exec(`UPDATE homework_submissions SET status=?,result_text=?,updated_at=? WHERE id=(SELECT id FROM homework_submissions WHERE assignment_id=? ORDER BY created_at DESC LIMIT 1)`, submissionStatus, note, now, assignmentID); err != nil {
+				return err
+			}
+		}
 		if rows[0][3] == status {
 			return nil
 		}
@@ -356,7 +618,7 @@ func updateHomeworkAssignmentStatus(db *AppDB, adminID, assignmentID, status, no
 			title = "Задача зачтена"
 		} else if status == "incorrect" {
 			title = "Задачу нужно повторить"
-			body = fmt.Sprintf("В задаче «%s» есть ошибка. Её можно решить повторно.", rows[0][2])
+			body = fmt.Sprintf("В задаче «%s» есть ошибка. Исправьте код и отправьте решение повторно.", rows[0][2])
 		}
 		if note != "" {
 			body += " Комментарий: " + note

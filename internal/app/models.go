@@ -97,6 +97,7 @@ type RescheduleRequest struct {
 
 type HomeworkTask struct {
 	ID              string
+	PublicID        string
 	Title           string
 	Topic           string
 	Language        string
@@ -115,18 +116,36 @@ type HomeworkTask struct {
 	UpdatedAt       time.Time
 }
 
+type HomeworkSubmission struct {
+	ID           string
+	AssignmentID string
+	UserID       string
+	Language     string
+	SourceCode   string
+	Status       string
+	ResultText   string
+	Filename     string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	SubmittedAt  time.Time
+}
+
 type HomeworkAssignment struct {
-	ID          string
-	TaskID      string
-	UserID      string
-	BookingID   string
-	AssignedBy  string
-	Status      string
-	StatusLabel string
-	TeacherNote string
-	AssignedAt  time.Time
-	UpdatedAt   time.Time
-	Task        HomeworkTask
+	ID             string
+	TaskID         string
+	UserID         string
+	BookingID      string
+	AssignedBy     string
+	Status         string
+	StatusLabel    string
+	TeacherNote    string
+	AssignedAt     time.Time
+	UpdatedAt      time.Time
+	Task           HomeworkTask
+	Submission     *HomeworkSubmission
+	HomeworkDir    string
+	CodeLanguage   string
+	SourceFilename string
 }
 
 type HomeworkTaskChoice struct {

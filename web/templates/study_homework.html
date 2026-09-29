@@ -2,17 +2,36 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-io-1">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-submit-1">
 </head>
 <body class="study-body cabinet-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
   <main class="study-main homework-view-main">
     <a class="back-link" href="/study/account?tab=materials">← Все материалы и ДЗ</a>
+    {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}
+    {{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
     <section class="study-panel homework-task-hero">
-      <div><div class="task-badges"><span>{{.HomeworkAssignment.Task.Topic}}</span>{{if .HomeworkAssignment.Task.Language}}<span>{{.HomeworkAssignment.Task.Language}}</span>{{end}}<span class="difficulty {{.HomeworkAssignment.Task.Difficulty}}">{{.HomeworkAssignment.Task.DifficultyLabel}}</span></div><h1>{{.HomeworkAssignment.Task.Title}}</h1><p>Назначено {{.HomeworkAssignment.AssignedAt.Format "02.01.2006"}}</p></div><span class="status-pill homework-{{.HomeworkAssignment.Status}}">{{.HomeworkAssignment.StatusLabel}}</span>
+      <div>
+        <div class="task-badges"><span class="task-public-id">{{.HomeworkAssignment.Task.PublicID}}</span><span>{{.HomeworkAssignment.Task.Topic}}</span>{{if .HomeworkAssignment.Task.Language}}<span>{{.HomeworkAssignment.Task.Language}}</span>{{end}}<span class="difficulty {{.HomeworkAssignment.Task.Difficulty}}">{{.HomeworkAssignment.Task.DifficultyLabel}}</span></div>
+        <h1>{{.HomeworkAssignment.Task.Title}}</h1>
+        <p>Назначено {{.HomeworkAssignment.AssignedAt.Format "02.01.2006"}}</p>
+      </div>
+      <span class="status-pill homework-{{.HomeworkAssignment.Status}}">{{.HomeworkAssignment.StatusLabel}}</span>
     </section>
+
+    <section class="study-panel homework-workspace-instruction">
+      <div class="panel-head"><div><span class="panel-label">КАК ВЫПОЛНЯТЬ</span><h2>Сначала сохрани решение в своей папке</h2></div><span class="homework-id-chip">{{.HomeworkAssignment.Task.PublicID}}</span></div>
+      <p>Пиши код в своей папке проекта. Для этого домашнего задания используй каталог:</p>
+      <code class="homework-path-line">{{.HomeworkAssignment.HomeworkDir}}</code>
+      <p>Файл задачи должен называться по ID из карточки. Для выбранного языка сейчас это:</p>
+      <code class="homework-path-line" data-homework-path>{{.HomeworkAssignment.HomeworkDir}}/<span data-homework-file>{{.HomeworkAssignment.SourceFilename}}</span></code>
+      <small>Пример структуры: <b>homework/hw_19092026/id_t1.c</b>. Дата в имени папки — дата выдачи домашнего задания.</small>
+    </section>
+
     {{if .HomeworkAssignment.TeacherNote}}<section class="study-panel homework-teacher-note"><span class="panel-label">КОММЕНТАРИЙ ПРЕПОДАВАТЕЛЯ</span><p>{{.HomeworkAssignment.TeacherNote}}</p></section>{{end}}
-    <section class="study-panel homework-statement"><div class="panel-head"><div><span class="panel-label">ЗАДАЧА</span><h2>Условие</h2></div></div><div class="md-content homework-md">{{.HomeworkAssignment.Task.StatementHTML}}</div></section>
+
+    <section class="study-panel homework-statement"><div class="panel-head"><div><span class="panel-label">ЗАДАЧА · {{.HomeworkAssignment.Task.PublicID}}</span><h2>Условие</h2></div></div><div class="md-content homework-md">{{.HomeworkAssignment.Task.StatementHTML}}</div></section>
     {{if or .HomeworkAssignment.Task.InputHTML .HomeworkAssignment.Task.OutputHTML}}
     <section class="study-panel homework-statement homework-io-panel">
       <div class="panel-head"><div><span class="panel-label">ФОРМАТ</span><h2>Входные и выходные данные</h2></div></div>
@@ -24,6 +43,22 @@
     {{end}}
     {{if .HomeworkAssignment.Task.ExamplesHTML}}<section class="study-panel homework-statement"><div class="panel-head"><div><span class="panel-label">ПРИМЕРЫ</span><h2>Примеры</h2></div></div><div class="md-content homework-md">{{.HomeworkAssignment.Task.ExamplesHTML}}</div></section>{{end}}
 
+    <section class="study-panel homework-code-panel">
+      <div class="panel-head"><div><span class="panel-label">РЕШЕНИЕ</span><h2>{{if eq .HomeworkAssignment.Status "correct"}}Отправленный код{{else if .HomeworkAssignment.Submission}}Исправить или отправить ещё раз{{else}}Отправить код преподавателю{{end}}</h2></div>{{if .HomeworkAssignment.Submission}}<span class="submission-time">Последняя отправка {{.HomeworkAssignment.Submission.SubmittedAt.Format "02.01 15:04"}}</span>{{end}}</div>
+      <form method="post" action="/study/homework/submit" class="homework-code-form">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}"><input type="hidden" name="assignment_id" value="{{.HomeworkAssignment.ID}}">
+        <div class="homework-code-toolbar">
+          <label class="homework-language-picker"><span>Язык</span><select name="language" data-homework-language {{if eq .HomeworkAssignment.Status "correct"}}disabled{{end}}><option value="C" {{if eq .HomeworkAssignment.CodeLanguage "C"}}selected{{end}}>C</option><option value="C++" {{if eq .HomeworkAssignment.CodeLanguage "C++"}}selected{{end}}>C++</option><option value="Go" {{if eq .HomeworkAssignment.CodeLanguage "Go"}}selected{{end}}>Go</option><option value="Python" {{if eq .HomeworkAssignment.CodeLanguage "Python"}}selected{{end}}>Python</option></select></label>
+          <div class="homework-code-filename"><span>Файл</span><code data-homework-file>{{.HomeworkAssignment.SourceFilename}}</code></div>
+        </div>
+        <textarea class="homework-code-editor" name="source_code" rows="22" maxlength="250000" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="#include <stdio.h>&#10;&#10;int main(void) {&#10;    return 0;&#10;}" {{if eq .HomeworkAssignment.Status "correct"}}readonly{{else}}required{{end}}>{{with .HomeworkAssignment.Submission}}{{.SourceCode}}{{end}}</textarea>
+        <div class="homework-code-actions">
+          <p>{{if eq .HomeworkAssignment.Status "correct"}}Задача уже зачтена. Код оставлен здесь для просмотра.{{else}}После отправки преподаватель увидит исходный код в карточке занятия и сможет поставить статус и комментарий.{{end}}</p>
+          {{if ne .HomeworkAssignment.Status "correct"}}<button class="study-button primary" type="submit">{{if .HomeworkAssignment.Submission}}Отправить код повторно{{else}}Отправить на проверку{{end}}</button>{{end}}
+        </div>
+      </form>
+    </section>
   </main>{{template "study_footer" .}}
+  <script src="/static/js/study_homework.js?v=20260928-1"></script>
 </body>
 </html>
