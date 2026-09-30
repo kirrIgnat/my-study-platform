@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260928-homework-submit-1">
+  <meta name="theme-color" content="#071019"><meta name="csrf-token" content="{{.CSRF}}"><link rel="stylesheet" href="/static/css/study.css?v=20260929-payments-3">
 </head>
 <body class="study-body cabinet-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
@@ -76,7 +76,7 @@
   <dialog class="study-dialog wide-dialog" id="temporaryMoveDialog"><form method="dialog" class="dialog-shell"><div class="dialog-head"><div><span class="panel-label">РАЗОВЫЙ ПЕРЕНОС</span><h2 id="temporaryMoveTitle">Перенести занятие</h2></div><button class="dialog-close" value="cancel">×</button></div><p id="temporaryMoveLimit">Можно использовать не более 2 разовых переносов в месяц.</p><div class="reschedule-calendar"><div class="calendar-weekdays"><span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span></div><div class="calendar-grid compact-calendar" id="moveCalendarGrid"></div></div><div class="move-slot-list" id="moveSlotList"><span>Выберите свободную дату.</span></div><label class="dialog-reason"><span>Комментарий</span><textarea id="temporaryMoveReason" maxlength="1000" rows="3"></textarea></label><div class="dialog-status" id="temporaryMoveStatus"></div><button class="study-button primary wide" id="temporaryMoveSubmit" type="button" disabled>Отправить запрос преподавателю</button></form></dialog>
   {{end}}
   {{template "study_footer" .}}
-  {{if eq .CabinetTab "schedule"}}<script src="/static/js/study_calendar.js?v=20260928-slots-1"></script>{{end}}
+  {{if eq .CabinetTab "schedule"}}<script src="/static/js/study_calendar.js?v=20260929-payments-3"></script>{{end}}
   {{if and .StudentSchedules (eq .CabinetTab "transfers")}}<script src="/static/js/study_reschedule.js?v=20260913-4"></script>{{end}}
   {{if eq .CabinetTab "materials"}}<script src="/static/js/study_homework_archive.js?v=20260928-1"></script>{{end}}
 </body>

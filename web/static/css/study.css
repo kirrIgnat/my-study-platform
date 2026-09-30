@@ -1774,3 +1774,122 @@ label.test-option:has(input:checked) { border-color: rgba(118,209,197,.38); back
   .homework-code-filename { text-align: left; }
   .homework-code-editor { min-height: 340px; font-size: 11px; }
 }
+
+/* =========================
+   LESSON PAYMENTS
+   ========================= */
+.payment-layout { display: grid; grid-template-columns: minmax(280px,.72fr) minmax(0,1.6fr); gap: 16px; align-items: start; }
+.payment-qr-panel,.payment-lessons-panel,.admin-payment-qr-card,.admin-payment-queue { min-height: 0; }
+.payment-qr-wrap { width: min(360px,100%); aspect-ratio: 1; margin: 22px auto; padding: 14px; display: grid; place-items: center; border: 1px solid rgba(118,209,197,.22); border-radius: 20px; background: #fff; box-shadow: 0 20px 55px rgba(0,0,0,.18); overflow: hidden; }
+.payment-qr-wrap.admin { width: min(300px,100%); margin-top: 18px; }
+.payment-qr-wrap img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+.payment-warning { margin-top: 16px; padding: 14px; display: grid; gap: 5px; border: 1px solid rgba(231,198,111,.18); border-radius: 13px; background: rgba(231,198,111,.045); }
+.payment-warning b { color: var(--study-warning); font-size: 11px; }
+.payment-warning span { color: var(--study-muted); font-size: 10px; line-height: 1.6; }
+.payment-lesson-list,.admin-payment-list { display: grid; gap: 10px; }
+.payment-lesson-card { padding: 16px; display: grid; grid-template-columns: 132px minmax(0,1fr) auto; align-items: center; gap: 18px; border: 1px solid var(--study-line); border-radius: 15px; background: rgba(255,255,255,.018); transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+.payment-lesson-card:hover { transform: translateY(-1px); }
+.payment-lesson-card.payment-unpaid,.upcoming-lesson-card.payment-unpaid,.calendar-event.payment-unpaid { border-color: rgba(255,141,145,.34); background: rgba(255,141,145,.045); }
+.payment-lesson-card.payment-rejected,.upcoming-lesson-card.payment-rejected,.calendar-event.payment-rejected { border-color: rgba(255,141,145,.26); background: rgba(255,141,145,.035); }
+.payment-lesson-card.payment-pending,.upcoming-lesson-card.payment-pending,.calendar-event.payment-pending { border-color: rgba(231,198,111,.3); background: rgba(231,198,111,.04); }
+.payment-lesson-card.payment-approved,.upcoming-lesson-card.payment-approved,.calendar-event.payment-approved { border-color: rgba(131,214,162,.34); background: rgba(131,214,162,.045); }
+.payment-lesson-date { display: grid; gap: 4px; }
+.payment-lesson-date b { font-size: 16px; }
+.payment-lesson-date span { color: var(--study-accent); font-size: 11px; font-weight: 800; }
+.payment-lesson-main { min-width: 0; display: grid; gap: 8px; }
+.payment-lesson-main h3 { margin: 0; font-size: 14px; }
+.payment-lesson-main > small { color: var(--study-muted); font-size: 9px; line-height: 1.5; }
+.payment-lesson-meta { display: flex; flex-wrap: wrap; gap: 7px; }
+.payment-lesson-action form { margin: 0; }
+.payment-state-copy { font-size: 10px; font-weight: 800; white-space: nowrap; }
+.payment-state-copy.approved { color: var(--study-ok); }
+.payment-state-copy.pending { color: var(--study-warning); }
+.payment-state-copy.unpaid { color: var(--study-danger); }
+.status-pill.payment-unpaid,.status-pill.payment-rejected { color: var(--study-danger); border-color: rgba(255,141,145,.24); background: rgba(255,141,145,.065); }
+.status-pill.payment-pending { color: var(--study-warning); border-color: rgba(231,198,111,.24); background: rgba(231,198,111,.065); }
+.status-pill.payment-approved { color: var(--study-ok); border-color: rgba(131,214,162,.26); background: rgba(131,214,162,.07); }
+.payment-inline { font-size: inherit; font-weight: 800; }
+.payment-inline.payment-unpaid,.payment-inline.payment-rejected { color: var(--study-danger); }
+.payment-inline.payment-pending { color: var(--study-warning); }
+.payment-inline.payment-approved { color: var(--study-ok); }
+.overview-upcoming > div.overview-payment-unpaid,.overview-upcoming > div.overview-payment-rejected { border-color: rgba(255,141,145,.25); }
+.overview-upcoming > div.overview-payment-pending { border-color: rgba(231,198,111,.22); }
+.overview-upcoming > div.overview-payment-approved { border-color: rgba(131,214,162,.25); }
+.lesson-calendar-cell u.payment-unpaid,.lesson-calendar-cell u.payment-rejected { background: var(--study-danger); }
+.lesson-calendar-cell u.payment-pending { background: var(--study-warning); }
+.lesson-calendar-cell u.payment-approved { background: var(--study-ok); }
+.admin-payment-grid { display: grid; grid-template-columns: minmax(300px,.75fr) minmax(0,1.5fr); gap: 16px; align-items: start; }
+.payment-qr-form { margin-top: 18px; }
+.admin-payment-item { padding: 17px; display: grid; gap: 13px; border: 1px solid var(--study-line); border-radius: 15px; background: rgba(255,255,255,.016); }
+.admin-payment-item.payment-pending { border-color: rgba(231,198,111,.25); }
+.admin-payment-item.payment-approved { border-color: rgba(131,214,162,.22); }
+.admin-payment-item.payment-rejected { border-color: rgba(255,141,145,.2); }
+.admin-payment-item-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.admin-payment-item-head > div { display: grid; gap: 5px; }
+.admin-payment-item-head h3 { margin: 0; font-size: 15px; }
+.admin-payment-item-head small,.admin-payment-item-head time { color: var(--study-muted); font-size: 9px; }
+.admin-payment-lesson { padding: 12px 13px; display: grid; gap: 4px; border: 1px solid var(--study-line); border-radius: 12px; background: rgba(0,0,0,.12); }
+.admin-payment-lesson span { color: var(--study-muted); font-size: 8px; text-transform: uppercase; letter-spacing: .08em; }
+.admin-payment-lesson b { font-size: 12px; }
+.admin-payment-lesson small { color: var(--study-muted); font-size: 9px; }
+.payment-approval-form { margin-top: 0; }
+.admin-payment-resolved { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.admin-payment-resolved > span { color: var(--study-muted); font-size: 9px; }
+
+@media (max-width: 900px) {
+  .payment-layout,.admin-payment-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 680px) {
+  .payment-lesson-card { grid-template-columns: 1fr; gap: 12px; }
+  .payment-lesson-action { justify-self: stretch; }
+  .payment-lesson-action .study-button { width: 100%; }
+  .admin-payment-item-head,.admin-payment-resolved { flex-direction: column; }
+}
+.notification-deep-link { display: inline-flex; margin-top: 7px; color: var(--study-accent); font-size: 9px; font-weight: 800; text-decoration: none; }
+.notification-deep-link:hover { text-decoration: underline; }
+
+/* =========================
+   PER-LESSON PAYMENT QR
+   ========================= */
+.payment-lessons-full { min-height: 0; }
+.admin-payment-lessons-panel { margin-bottom: 16px; }
+.admin-lesson-qr-list { display: grid; gap: 12px; }
+.admin-lesson-qr-card { padding: 16px; display: grid; grid-template-columns: minmax(0,1.2fr) 190px minmax(240px,.8fr); gap: 18px; align-items: center; border: 1px solid var(--study-line); border-radius: 16px; background: rgba(255,255,255,.016); }
+.admin-lesson-qr-card.payment-unpaid,.admin-lesson-qr-card.payment-rejected { border-color: rgba(255,141,145,.25); }
+.admin-lesson-qr-card.payment-pending { border-color: rgba(231,198,111,.24); }
+.admin-lesson-qr-card.payment-approved { border-color: rgba(131,214,162,.25); }
+.admin-lesson-qr-info { min-width: 0; display: grid; gap: 10px; }
+.admin-lesson-qr-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.admin-lesson-qr-title h3 { margin: 0; font-size: 15px; }
+.admin-lesson-qr-title small,.payment-qr-updated { color: var(--study-muted); font-size: 9px; }
+.admin-lesson-qr-preview { display: grid; place-items: center; }
+.admin-lesson-qr-actions { display: grid; gap: 9px; }
+.admin-lesson-qr-actions .payment-qr-form { margin: 0; }
+.payment-qr-wrap.lesson-admin { width: 165px; margin: 0; padding: 8px; border-radius: 14px; }
+.payment-qr-wrap.lesson-student { width: 190px; margin: 0 auto 10px; padding: 8px; border-radius: 14px; }
+.payment-qr-placeholder { width: 165px; aspect-ratio: 1; display: grid; place-items: center; border: 1px dashed rgba(145,199,220,.24); border-radius: 14px; color: var(--study-muted); font-size: 22px; font-weight: 900; letter-spacing: .12em; background: rgba(255,255,255,.015); }
+.payment-qr-placeholder.student { width: 190px; margin: 0 auto 10px; }
+.per-lesson-payment-list { margin-top: 14px; }
+.per-lesson-payment-card { grid-template-columns: 132px minmax(0,1fr) 220px; align-items: center; }
+.student-lesson-qr { display: grid; gap: 8px; justify-items: stretch; text-align: center; }
+.student-lesson-qr .payment-state-copy { white-space: normal; line-height: 1.45; }
+
+@media (max-width: 980px) {
+  .admin-lesson-qr-card { grid-template-columns: minmax(0,1fr) 170px; }
+  .admin-lesson-qr-actions { grid-column: 1 / -1; grid-template-columns: minmax(0,1fr) auto; align-items: end; }
+  .admin-lesson-qr-actions > .table-action { grid-column: 1 / -1; }
+  .per-lesson-payment-card { grid-template-columns: 120px minmax(0,1fr); }
+  .student-lesson-qr { grid-column: 1 / -1; }
+}
+
+@media (max-width: 680px) {
+  .admin-lesson-qr-card,.per-lesson-payment-card { grid-template-columns: 1fr; }
+  .admin-lesson-qr-title { flex-direction: column; }
+  .admin-lesson-qr-actions { grid-column: auto; grid-template-columns: 1fr; }
+  .admin-lesson-qr-actions > .table-action { grid-column: auto; }
+  .payment-qr-wrap.lesson-admin,.payment-qr-placeholder { width: min(220px,100%); }
+  .payment-qr-wrap.lesson-student,.payment-qr-placeholder.student { width: min(240px,100%); }
+}
+
+.payment-delete-form { margin: 0; justify-self: start; }

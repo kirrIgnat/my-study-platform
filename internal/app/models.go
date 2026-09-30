@@ -41,6 +41,16 @@ type StudyBooking struct {
 	Rescheduled         bool
 	Status              string
 	CreatedAt           time.Time
+	PaymentRequestID    string
+	PaymentStatus       string
+	PaymentStatusLabel  string
+	PaymentRequestedAt  time.Time
+	PaymentReviewedAt   time.Time
+	PaymentTeacherNote  string
+	PaymentQRDataURL    template.URL
+	PaymentHasQR        bool
+	PaymentQRUpdatedAt  time.Time
+	PaymentExcluded     bool
 	Tests               []TestAssignment     `json:"-"`
 	HomeworkAssignments []HomeworkAssignment `json:"-"`
 }
@@ -181,6 +191,30 @@ type StudyLesson struct {
 	UpdatedAt           time.Time
 	Tests               []TestAssignment     `json:"-"`
 	HomeworkAssignments []HomeworkAssignment `json:"-"`
+}
+
+type PaymentSettings struct {
+	QRDataURL template.URL
+	HasQR     bool
+	UpdatedAt time.Time
+}
+
+type LessonPayment struct {
+	ID          string
+	BookingID   string
+	UserID      string
+	UserName    string
+	UserEmail   string
+	Date        string
+	Time        string
+	EndTime     string
+	Topic       string
+	Status      string
+	StatusLabel string
+	TeacherNote string
+	RequestedAt time.Time
+	ReviewedAt  time.Time
+	Reviewed    bool
 }
 
 type StudyNotification struct {

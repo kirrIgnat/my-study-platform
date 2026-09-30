@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260929-payments-3"></head>
+<body class="study-body admin-body cabinet-body"><div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+<main class="study-main cabinet-main payment-page admin-payment-page">
+  <section class="cabinet-heading"><div><span class="study-kicker">ADMIN · ОПЛАТА</span><h1>Оплата занятий</h1><p>Оплата открывается только для проведённых занятий. Для каждого проведённого занятия каждого ученика загружается отдельный QR-код.</p></div><a class="cabinet-center-link" href="/study/admin?tab=schedule">К расписанию →</a></section>
+  {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}{{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
+  <section class="study-panel admin-payment-lessons-panel">
+    <div class="panel-head"><div><span class="panel-label">ПРОВЕДЁННЫЕ ЗАНЯТИЯ</span><h2>Реквизиты каждого урока</h2></div><span class="counter">{{len .PaymentBookings}}</span></div>
+    {{if .PaymentBookings}}
+    <div class="admin-lesson-qr-list">
+      {{range .PaymentBookings}}
+      <article class="admin-lesson-qr-card payment-{{.PaymentStatus}}">
+        <div class="admin-lesson-qr-info">
+          <div class="admin-lesson-qr-title"><div><h3>{{.UserName}}</h3><small>{{.UserEmail}}</small></div><span class="status-pill payment-{{.PaymentStatus}}">{{.PaymentStatusLabel}}</span></div>
+          <div class="admin-payment-lesson"><span>Занятие</span><b>{{.Date}} · {{.Time}}–{{.EndTime}}</b><small>{{if .Topic}}{{.Topic}}{{else}}Персональное занятие{{end}}</small></div>
+          {{if .PaymentHasQR}}<small class="payment-qr-updated">QR обновлён {{.PaymentQRUpdatedAt.Format "02.01.2006 15:04"}}</small>{{else}}<span class="payment-state-copy unpaid">QR для этого занятия ещё не загружен</span>{{end}}
+        </div>
+        <div class="admin-lesson-qr-preview">
+          {{if .PaymentHasQR}}<div class="payment-qr-wrap lesson-admin"><img src="{{.PaymentQRDataURL}}" alt="QR-код для занятия {{.Date}} {{.Time}}"></div>{{else}}<div class="payment-qr-placeholder">QR</div>{{end}}
+        </div>
+        <div class="admin-lesson-qr-actions">
+          <form class="study-form compact payment-qr-form" method="post" action="/study/admin/payments/qr" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="booking_id" value="{{.ID}}">
+            <label><span>{{if .PaymentHasQR}}Заменить QR{{else}}Загрузить QR{{end}}</span><input type="file" name="qr_code" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" required><small>PNG, JPEG или WebP · максимум 1 МБ.</small></label>
+            <button class="study-button primary small wide" type="submit">{{if .PaymentHasQR}}Заменить QR{{else}}Загрузить QR{{end}}</button>
+          </form>
+          {{if .PaymentHasQR}}<form method="post" action="/study/admin/payments/qr" data-confirm="Удалить QR-код только у этого занятия?"><input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="booking_id" value="{{.ID}}"><input type="hidden" name="action" value="clear"><button class="study-button secondary small wide" type="submit">Удалить QR занятия</button></form>{{end}}
+          {{if .PaymentRequestID}}<form method="post" action="/study/admin/payments/delete" data-confirm="Удалить оплату из этого занятия? Статус снова станет «Не оплачено», QR останется."><input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="booking_id" value="{{.ID}}"><button class="study-button danger-outline small wide" type="submit">Удалить оплату</button></form>{{end}}
+          <form method="post" action="/study/admin/payments/exclude" data-confirm="Убрать это занятие из раздела оплаты? Карточка исчезнет у вас и у ученика, QR и заявка на оплату будут удалены. Само занятие останется в расписании."><input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="booking_id" value="{{.ID}}"><button class="study-button danger-outline small wide" type="submit">Убрать занятие из оплаты</button></form>
+          <a class="table-action" href="/study/admin/lesson?id={{.ID}}">Открыть занятие →</a>
+        </div>
+      </article>
+      {{end}}
+    </div>
+    {{else}}<div class="empty-state"><b>Занятий пока нет</b><span>После того как занятие будет отмечено как проведённое, оно появится здесь и для него можно будет загрузить отдельный QR-код.</span></div>{{end}}
+  </section>
+
+  <section class="study-panel admin-payment-queue">
+    <div class="panel-head"><div><span class="panel-label">ПРОВЕРКА</span><h2>Оплаты учеников</h2></div><span class="counter">{{.PendingPaymentCount}} ожидают</span></div>
+    {{if .LessonPayments}}
+    <div class="admin-payment-list">
+      {{range .LessonPayments}}
+      <article class="admin-payment-item payment-{{.Status}}">
+        <div class="admin-payment-item-head"><div><span class="status-pill payment-{{.Status}}">{{.StatusLabel}}</span><h3>{{.UserName}}</h3><small>{{.UserEmail}}</small></div><time>{{.RequestedAt.Format "02.01.2006 15:04"}}</time></div>
+        <div class="admin-payment-lesson"><span>Занятие</span><b>{{.Date}} · {{.Time}}–{{.EndTime}}</b><small>{{if .Topic}}{{.Topic}}{{else}}Персональное занятие{{end}}</small></div>
+        {{if .TeacherNote}}<p class="approval-reason">Комментарий: {{.TeacherNote}}</p>{{end}}
+        {{if eq .Status "pending"}}
+        <form class="approval-form payment-approval-form" method="post" action="/study/admin/payments/resolve"><input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="payment_id" value="{{.ID}}"><label><span>Комментарий ученику</span><input type="text" name="teacher_note" maxlength="1000" placeholder="Необязательно"></label><div><button class="study-button secondary small reject-button" type="submit" name="decision" value="reject">Не подтверждать</button><button class="study-button primary small" type="submit" name="decision" value="approve">Подтвердить оплату</button></div></form>
+        {{else}}<div class="admin-payment-resolved"><span>Обработано {{if .Reviewed}}{{.ReviewedAt.Format "02.01.2006 15:04"}}{{end}}</span><a class="table-action" href="/study/admin/lesson?id={{.BookingID}}">Открыть занятие →</a></div>{{end}}
+        <form class="payment-delete-form" method="post" action="/study/admin/payments/delete" data-confirm="Удалить оплату из этого занятия? Статус снова станет «Не оплачено», QR останется."><input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="booking_id" value="{{.BookingID}}"><button class="study-button danger-outline small" type="submit">Удалить оплату из занятия</button></form>
+      </article>
+      {{end}}
+    </div>
+    {{else}}<div class="empty-state"><b>Оплат на проверку ещё не было</b><span>После нажатия учеником «Я оплатил» заявка появится здесь и в уведомлениях.</span></div>{{end}}
+  </section>
+</main>{{template "study_footer" .}}
+</body></html>

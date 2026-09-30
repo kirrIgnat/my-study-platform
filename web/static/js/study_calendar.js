@@ -50,7 +50,9 @@
         const action = role === 'admin'
           ? `<a href="/study/admin/lesson?id=${encodeURIComponent(event.id)}">Управлять занятием →</a>`
           : (event.meeting_url ? `<a href="${escapeHTML(event.meeting_url)}" target="_blank" rel="noopener noreferrer">Войти в конференцию ↗</a>` : '<span>Ссылка появится позже</span>');
-        return `<article class="calendar-event ${escapeHTML(event.status)}"><time>${escapeHTML(event.time)}${event.end_time ? `–${escapeHTML(event.end_time)}` : ''}</time><div><b>${escapeHTML(titleText)}</b>${student}<em>${escapeHTML(event.status)}${event.rescheduled ? ' · перенесено' : ''}</em></div>${action}</article>`;
+        const paymentClass = event.status === 'done' && event.payment_status ? `payment-${event.payment_status}` : '';
+        const paymentLabel = event.status === 'done' && event.payment_status_label ? ` · ${event.payment_status_label}` : '';
+        return `<article class="calendar-event ${escapeHTML(event.status)} ${escapeHTML(paymentClass)}"><time>${escapeHTML(event.time)}${event.end_time ? `–${escapeHTML(event.end_time)}` : ''}</time><div><b>${escapeHTML(titleText)}</b>${student}<em>${escapeHTML(event.status)}${escapeHTML(paymentLabel)}${event.rescheduled ? ' · перенесено' : ''}</em></div>${action}</article>`;
       }).join('')}</div>`;
     };
 
@@ -75,7 +77,7 @@
         button.className = 'lesson-calendar-cell';
         if (key === selected) button.classList.add('selected');
         if (key === dateKey(new Date())) button.classList.add('today');
-        button.innerHTML = `<span>${day}</span>${list.length ? `<b>${list.length}</b><i>${list.slice(0,3).map((e) => `<u class="${escapeHTML(e.status)}"></u>`).join('')}</i>` : ''}`;
+        button.innerHTML = `<span>${day}</span>${list.length ? `<b>${list.length}</b><i>${list.slice(0,3).map((e) => `<u class="${escapeHTML(e.status)}${e.status === 'done' && e.payment_status ? ` payment-${escapeHTML(e.payment_status)}` : ''}"></u>`).join('')}</i>` : ''}`;
         button.addEventListener('click', () => { selected = key; render(); renderDay(); });
         grid.appendChild(button);
       }

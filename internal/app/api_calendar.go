@@ -6,25 +6,32 @@ import (
 )
 
 type calendarEventJSON struct {
-	ID              string `json:"id"`
-	UserID          string `json:"user_id,omitempty"`
-	UserName        string `json:"user_name,omitempty"`
-	Date            string `json:"date"`
-	Time            string `json:"time"`
-	EndTime         string `json:"end_time"`
-	DurationMinutes int    `json:"duration_minutes"`
-	Timezone        string `json:"timezone"`
-	Topic           string `json:"topic"`
-	Status          string `json:"status"`
-	MeetingURL      string `json:"meeting_url,omitempty"`
-	Rescheduled     bool   `json:"rescheduled"`
-	ScheduleID      string `json:"schedule_id,omitempty"`
+	ID                 string `json:"id"`
+	UserID             string `json:"user_id,omitempty"`
+	UserName           string `json:"user_name,omitempty"`
+	Date               string `json:"date"`
+	Time               string `json:"time"`
+	EndTime            string `json:"end_time"`
+	DurationMinutes    int    `json:"duration_minutes"`
+	Timezone           string `json:"timezone"`
+	Topic              string `json:"topic"`
+	Status             string `json:"status"`
+	MeetingURL         string `json:"meeting_url,omitempty"`
+	Rescheduled        bool   `json:"rescheduled"`
+	ScheduleID         string `json:"schedule_id,omitempty"`
+	PaymentStatus      string `json:"payment_status"`
+	PaymentStatusLabel string `json:"payment_status_label"`
 }
 
 func calendarEventsFromBookings(bookings []StudyBooking) []calendarEventJSON {
 	result := make([]calendarEventJSON, 0, len(bookings))
 	for _, b := range bookings {
-		result = append(result, calendarEventJSON{ID: b.ID, UserID: b.UserID, UserName: b.UserName, Date: b.Date, Time: b.Time, EndTime: b.EndTime, DurationMinutes: b.DurationMinutes, Timezone: b.Timezone, Topic: b.Topic, Status: b.Status, MeetingURL: b.MeetingURL, Rescheduled: b.Rescheduled, ScheduleID: b.ScheduleID})
+		event := calendarEventJSON{ID: b.ID, UserID: b.UserID, UserName: b.UserName, Date: b.Date, Time: b.Time, EndTime: b.EndTime, DurationMinutes: b.DurationMinutes, Timezone: b.Timezone, Topic: b.Topic, Status: b.Status, MeetingURL: b.MeetingURL, Rescheduled: b.Rescheduled, ScheduleID: b.ScheduleID}
+		if b.Status == "done" && !b.PaymentExcluded {
+			event.PaymentStatus = b.PaymentStatus
+			event.PaymentStatusLabel = b.PaymentStatusLabel
+		}
+		result = append(result, event)
 	}
 	return result
 }

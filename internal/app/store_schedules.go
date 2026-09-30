@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"sort"
 	"strings"
 	"time"
@@ -86,15 +87,23 @@ func listRecurringSlotOptions(db *AppDB, schedule map[time.Weekday][]string, loc
 }
 
 func listUserBookings(db *AppDB, userID string, loc *time.Location) ([]StudyBooking, error) {
-	rows, err := db.Query(`SELECT id,user_id,slot_start,date,time,timezone,topic,meeting_url,week_key,status,created_at,
-		COALESCE(schedule_id,''),COALESCE(occurrence_key,''),COALESCE(original_date,''),COALESCE(original_time,''),COALESCE(rescheduled,0)
-		FROM bookings WHERE user_id=? ORDER BY slot_start DESC`, userID)
+	rows, err := db.Query(`SELECT b.id,b.user_id,b.slot_start,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.week_key,b.status,b.created_at,
+		COALESCE(b.schedule_id,''),COALESCE(b.occurrence_key,''),COALESCE(b.original_date,''),COALESCE(b.original_time,''),COALESCE(b.rescheduled,0),
+		COALESCE(p.id,''),COALESCE(p.status,'unpaid'),COALESCE(p.requested_at,0),COALESCE(p.reviewed_at,0),COALESCE(p.teacher_note,''),
+		COALESCE(q.qr_data_url,''),COALESCE(q.updated_at,0),CASE WHEN x.booking_id IS NULL THEN 0 ELSE 1 END
+		FROM bookings b
+		LEFT JOIN lesson_payments p ON p.booking_id=b.id
+		LEFT JOIN lesson_payment_qr q ON q.booking_id=b.id
+		LEFT JOIN lesson_payment_exclusions x ON x.booking_id=b.id
+		WHERE b.user_id=? ORDER BY b.slot_start DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]StudyBooking, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, bookingFromRow(row, loc))
+		booking := bookingFromRow(row[:16], loc)
+		applyPaymentRow(&booking, row[16:24], loc)
+		result = append(result, booking)
 	}
 	return result, nil
 }
@@ -103,8 +112,13 @@ func listAdminBookings(db *AppDB, loc *time.Location) ([]StudyBooking, error) {
 	nowUnix := time.Now().UTC().Unix()
 	rows, err := db.Query(`SELECT b.id,b.user_id,b.slot_start,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.week_key,b.status,b.created_at,
 		COALESCE(b.schedule_id,''),COALESCE(b.occurrence_key,''),COALESCE(b.original_date,''),COALESCE(b.original_time,''),COALESCE(b.rescheduled,0),
-		u.name,u.email,u.telegram
-		FROM bookings b JOIN users u ON u.id=b.user_id
+		u.name,u.email,u.telegram,COALESCE(p.id,''),COALESCE(p.status,'unpaid'),COALESCE(p.requested_at,0),COALESCE(p.reviewed_at,0),COALESCE(p.teacher_note,''),
+		COALESCE(q.qr_data_url,''),COALESCE(q.updated_at,0),CASE WHEN x.booking_id IS NULL THEN 0 ELSE 1 END
+		FROM bookings b
+		JOIN users u ON u.id=b.user_id
+		LEFT JOIN lesson_payments p ON p.booking_id=b.id
+		LEFT JOIN lesson_payment_qr q ON q.booking_id=b.id
+		LEFT JOIN lesson_payment_exclusions x ON x.booking_id=b.id
 		ORDER BY CASE WHEN b.slot_start>=? THEN 0 ELSE 1 END,
 		CASE WHEN b.slot_start>=? THEN b.slot_start END ASC,
 		CASE WHEN b.slot_start<? THEN b.slot_start END DESC LIMIT 500`, nowUnix, nowUnix, nowUnix)
@@ -115,6 +129,7 @@ func listAdminBookings(db *AppDB, loc *time.Location) ([]StudyBooking, error) {
 	for _, row := range rows {
 		booking := bookingFromRow(row[:16], loc)
 		booking.UserName, booking.UserEmail, booking.Telegram = row[16], row[17], row[18]
+		applyPaymentRow(&booking, row[19:27], loc)
 		result = append(result, booking)
 	}
 	return result, nil
@@ -125,6 +140,44 @@ func bookingFromRow(row []string, loc *time.Location) StudyBooking {
 		ID: row[0], UserID: row[1], SlotStart: time.Unix(parseInt64(row[2]), 0).In(loc), Date: row[3], Time: row[4], EndTime: lessonEndTime(row[4]), DurationMinutes: lessonDurationMinutes, Timezone: row[5],
 		Topic: row[6], MeetingURL: row[7], WeekKey: row[8], Status: row[9], CreatedAt: time.Unix(parseInt64(row[10]), 0).UTC(),
 		ScheduleID: row[11], OccurrenceKey: row[12], OriginalDate: row[13], OriginalTime: row[14], Rescheduled: row[15] == "1",
+	}
+}
+
+func applyPaymentRow(booking *StudyBooking, row []string, loc *time.Location) {
+	if booking == nil || len(row) < 5 {
+		return
+	}
+	booking.PaymentRequestID = row[0]
+	booking.PaymentStatus = strings.TrimSpace(row[1])
+	if booking.PaymentStatus == "" {
+		booking.PaymentStatus = "unpaid"
+	}
+	booking.PaymentStatusLabel = paymentStatusLabel(booking.PaymentStatus)
+	if ts := parseInt64(row[2]); ts > 0 {
+		booking.PaymentRequestedAt = time.Unix(ts, 0).In(loc)
+	}
+	if ts := parseInt64(row[3]); ts > 0 {
+		booking.PaymentReviewedAt = time.Unix(ts, 0).In(loc)
+	}
+	booking.PaymentTeacherNote = row[4]
+	if len(row) >= 7 && strings.TrimSpace(row[5]) != "" {
+		booking.PaymentQRDataURL = template.URL(row[5])
+		booking.PaymentHasQR = true
+		if ts := parseInt64(row[6]); ts > 0 {
+			booking.PaymentQRUpdatedAt = time.Unix(ts, 0).In(loc)
+		}
+	}
+	if len(row) >= 8 && row[7] == "1" {
+		booking.PaymentExcluded = true
+		booking.PaymentRequestID = ""
+		booking.PaymentStatus = ""
+		booking.PaymentStatusLabel = ""
+		booking.PaymentRequestedAt = time.Time{}
+		booking.PaymentReviewedAt = time.Time{}
+		booking.PaymentTeacherNote = ""
+		booking.PaymentQRDataURL = ""
+		booking.PaymentHasQR = false
+		booking.PaymentQRUpdatedAt = time.Time{}
 	}
 }
 

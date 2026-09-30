@@ -49,6 +49,10 @@ type StudyPageData struct {
 	TestStarted                  bool
 	TestFinished                 bool
 	TestAdminView                bool
+	PaymentSettings              PaymentSettings
+	PaymentBookings              []StudyBooking
+	LessonPayments               []LessonPayment
+	PendingPaymentCount          int
 }
 
 type StudyApp struct {
@@ -92,6 +96,13 @@ func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/study/admin/homework/status", s.adminHomeworkStatus)
 	mux.HandleFunc("/study/homework", s.studentHomeworkView)
 	mux.HandleFunc("/study/homework/submit", s.studentHomeworkSubmit)
+	mux.HandleFunc("/study/payment", s.studentPaymentsPage)
+	mux.HandleFunc("/study/payment/submit", s.studentPaymentSubmit)
+	mux.HandleFunc("/study/admin/payments", s.adminPaymentsPage)
+	mux.HandleFunc("/study/admin/payments/qr", s.adminPaymentQRCode)
+	mux.HandleFunc("/study/admin/payments/resolve", s.adminPaymentResolve)
+	mux.HandleFunc("/study/admin/payments/delete", s.adminPaymentDelete)
+	mux.HandleFunc("/study/admin/payments/exclude", s.adminPaymentExclude)
 	mux.HandleFunc("/study/admin/students/password-reset", s.adminResetStudentPassword)
 	mux.HandleFunc("/study/admin/reschedule/resolve", s.adminResolveReschedule)
 	mux.HandleFunc("/study/admin/tests", s.adminTests)

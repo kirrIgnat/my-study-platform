@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260929-payments-3"></head>
+<body class="study-body cabinet-body"><div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
+<main class="study-main cabinet-main payment-page">
+  <section class="cabinet-heading"><div><span class="study-kicker">ОПЛАТА ЗАНЯТИЙ</span><h1>Оплата по QR</h1><p>Реквизиты появляются только после того, как преподаватель отметил занятие как проведённое. Для каждого проведённого урока используется свой QR-код.</p></div><a class="cabinet-center-link" href="/study/account?tab=schedule">Моё расписание →</a></section>
+  {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}{{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
+  <section class="study-panel payment-lessons-panel payment-lessons-full">
+    <div class="panel-head"><div><span class="panel-label">ЗАНЯТИЯ</span><h2>QR и статус оплаты</h2></div><span class="counter">{{len .PaymentBookings}}</span></div>
+    <div class="payment-warning"><b>Важно</b><span>Здесь показываются только проведённые занятия. QR относится только к своему уроку, а кнопка «Я оплатил» отправляет преподавателю запрос на ручное подтверждение.</span></div>
+    {{if .PaymentBookings}}
+    <div class="payment-lesson-list per-lesson-payment-list">
+      {{range .PaymentBookings}}
+      <article class="payment-lesson-card per-lesson-payment-card payment-{{.PaymentStatus}}">
+        <div class="payment-lesson-date"><b>{{.Date}}</b><span>{{.Time}}–{{.EndTime}}</span></div>
+        <div class="payment-lesson-main"><h3>{{if .Topic}}{{.Topic}}{{else}}Персональное занятие{{end}}</h3><div class="payment-lesson-meta"><span class="status-pill {{.Status}}">{{.Status}}</span><span class="status-pill payment-{{.PaymentStatus}}">{{.PaymentStatusLabel}}</span></div>{{if .PaymentTeacherNote}}<small>Комментарий преподавателя: {{.PaymentTeacherNote}}</small>{{end}}</div>
+        <div class="student-lesson-qr">
+          {{if .PaymentHasQR}}
+            <div class="payment-qr-wrap lesson-student"><img src="{{.PaymentQRDataURL}}" alt="QR-код для оплаты занятия {{.Date}} {{.Time}}"></div>
+            {{if eq .PaymentStatus "approved"}}<span class="payment-state-copy approved">Оплата подтверждена</span>
+            {{else if eq .PaymentStatus "pending"}}<span class="payment-state-copy pending">Оплата отправлена на проверку</span>
+            {{else}}<form method="post" action="/study/payment/submit"><input type="hidden" name="csrf_token" value="{{$.CSRF}}"><input type="hidden" name="booking_id" value="{{.ID}}"><button class="study-button primary small wide" type="submit">{{if eq .PaymentStatus "rejected"}}Отправить повторно{{else}}Я оплатил{{end}}</button></form>{{end}}
+          {{else}}
+            <div class="payment-qr-placeholder student">QR</div><span class="payment-state-copy unpaid">Преподаватель ещё не добавил QR для этого занятия</span>
+          {{end}}
+        </div>
+      </article>
+      {{end}}
+    </div>
+    {{else}}<div class="empty-state"><b>Занятий пока нет</b><span>После того как преподаватель отметит занятие проведённым, здесь появятся его QR и статус оплаты.</span></div>{{end}}
+  </section>
+</main>{{template "study_footer" .}}
+</body></html>

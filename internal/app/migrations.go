@@ -147,6 +147,39 @@ func migrateStudyDB(db *AppDB) error {
         )`,
 		`CREATE INDEX IF NOT EXISTS notifications_recipient_idx
             ON notifications(recipient_user_id, read_at, created_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS payment_settings (
+            id TEXT PRIMARY KEY,
+            qr_data_url TEXT NOT NULL DEFAULT '',
+            updated_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            updated_at BIGINT NOT NULL DEFAULT 0
+        )`,
+		`INSERT INTO payment_settings(id,qr_data_url,updated_at) VALUES('default','',0) ON CONFLICT(id) DO NOTHING`,
+		`CREATE TABLE IF NOT EXISTS lesson_payments (
+            id TEXT PRIMARY KEY,
+            booking_id TEXT NOT NULL UNIQUE REFERENCES bookings(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+            teacher_note TEXT NOT NULL DEFAULT '',
+            requested_at BIGINT NOT NULL,
+            reviewed_at BIGINT,
+            reviewed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            updated_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS lesson_payments_status_idx ON lesson_payments(status,requested_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS lesson_payments_user_idx ON lesson_payments(user_id,requested_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS lesson_payment_qr (
+            booking_id TEXT PRIMARY KEY REFERENCES bookings(id) ON DELETE CASCADE,
+            qr_data_url TEXT NOT NULL,
+            updated_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            updated_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS lesson_payment_qr_updated_idx ON lesson_payment_qr(updated_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS lesson_payment_exclusions (
+            booking_id TEXT PRIMARY KEY REFERENCES bookings(id) ON DELETE CASCADE,
+            excluded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            excluded_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS lesson_payment_exclusions_time_idx ON lesson_payment_exclusions(excluded_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS lesson_materials (
             booking_id TEXT PRIMARY KEY REFERENCES bookings(id) ON DELETE CASCADE,
             title TEXT NOT NULL DEFAULT '',
@@ -309,7 +342,10 @@ func migrateStudyDB(db *AppDB) error {
 		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 6, now); err != nil {
 			return err
 		}
-		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 7, now)
+		if err := tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 7, now); err != nil {
+			return err
+		}
+		return tx.exec(`INSERT INTO schema_migrations(version,applied_at) VALUES(?,?) ON CONFLICT(version) DO NOTHING`, 8, now)
 	})
 }
 
