@@ -51,6 +51,7 @@ type StudyBooking struct {
 	PaymentHasQR        bool
 	PaymentQRUpdatedAt  time.Time
 	PaymentExcluded     bool
+	ConferenceReady     bool
 	Tests               []TestAssignment     `json:"-"`
 	HomeworkAssignments []HomeworkAssignment `json:"-"`
 }
@@ -186,11 +187,34 @@ type StudyLesson struct {
 	Homework            string
 	HomeworkHTML        template.HTML
 	VideoURL            string
+	ConferenceReady     bool
+	ConferenceRoom      string
+	Recordings          []LessonRecording `json:"-"`
 	Published           bool
 	PublishedAt         time.Time
 	UpdatedAt           time.Time
 	Tests               []TestAssignment     `json:"-"`
 	HomeworkAssignments []HomeworkAssignment `json:"-"`
+}
+
+type LessonConference struct {
+	BookingID string
+	RoomName  string
+	CreatedBy string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type LessonRecording struct {
+	ID             string
+	BookingID      string
+	FileName       string
+	RelativePath   string
+	MimeType       string
+	SizeBytes      int64
+	SizeLabel      string
+	StudentVisible bool
+	CreatedAt      time.Time
 }
 
 type PaymentSettings struct {

@@ -45,6 +45,16 @@ func (s *StudyApp) studentAccountData(w http.ResponseWriter, r *http.Request, se
 	if lessonErr != nil {
 		log.Printf("account lessons: %v", lessonErr)
 	}
+	if err := s.syncJibriRecordingsForStudent(session.User.ID); err != nil {
+		log.Printf("account recording sync: %v", err)
+	}
+	if recordingsByBooking, err := listVisibleRecordingsForStudent(s.db, session.User.ID, s.loc); err != nil {
+		log.Printf("account recordings: %v", err)
+	} else {
+		for i := range lessons {
+			lessons[i].Recordings = recordingsByBooking[lessons[i].BookingID]
+		}
+	}
 	assignments, assignmentErr := listStudentTestAssignments(s.db, session.User.ID, s.loc)
 	if assignmentErr != nil {
 		log.Printf("account tests: %v", assignmentErr)

@@ -86,6 +86,7 @@ func (s *StudyApp) adminBookingUpdate(w http.ResponseWriter, r *http.Request) {
 		data.Lesson, _ = getAdminLesson(s.db, bookingID, s.loc)
 		s.populateAdminLessonTests(&data, bookingID)
 		s.populateAdminLessonHomework(&data, bookingID, data.Lesson.UserID)
+		s.populateAdminLessonConference(&data, bookingID)
 		renderStudy(w, "study_admin_lesson.html", data)
 		return
 	}
@@ -124,6 +125,7 @@ func (s *StudyApp) adminLesson(w http.ResponseWriter, r *http.Request) {
 	data.Lesson = lesson
 	s.populateAdminLessonTests(&data, bookingID)
 	s.populateAdminLessonHomework(&data, bookingID, lesson.UserID)
+	s.populateAdminLessonConference(&data, bookingID)
 	switch r.URL.Query().Get("saved") {
 	case "schedule":
 		data.Success = "Параметры занятия сохранены. Ученик получил уведомление об изменениях."
@@ -137,6 +139,14 @@ func (s *StudyApp) adminLesson(w http.ResponseWriter, r *http.Request) {
 		data.Success = "Домашние задачи назначены ученику."
 	case "homework-status":
 		data.Success = "Статус домашней задачи обновлён."
+	case "conference":
+		data.Success = "Приватная конференция создана. Ученик получил уведомление."
+	case "conference-deleted":
+		data.Success = "Конференция удалена. Само занятие и записи сохранены."
+	case "recording":
+		data.Success = "Доступ ученика к записи обновлён."
+	case "recording-deleted":
+		data.Success = "Запись занятия удалена с сервера."
 	}
 	renderStudy(w, "study_admin_lesson.html", data)
 }
@@ -177,6 +187,7 @@ func (s *StudyApp) adminLessonSave(w http.ResponseWriter, r *http.Request) {
 		data.Lesson = current
 		s.populateAdminLessonTests(&data, bookingID)
 		s.populateAdminLessonHomework(&data, bookingID, current.UserID)
+		s.populateAdminLessonConference(&data, bookingID)
 		renderStudy(w, "study_admin_lesson.html", data)
 		return
 	} else if ok {
@@ -195,6 +206,7 @@ func (s *StudyApp) adminLessonSave(w http.ResponseWriter, r *http.Request) {
 		hydrateLessonMarkdown(&data.Lesson)
 		s.populateAdminLessonTests(&data, bookingID)
 		s.populateAdminLessonHomework(&data, bookingID, current.UserID)
+		s.populateAdminLessonConference(&data, bookingID)
 		renderStudy(w, "study_admin_lesson.html", data)
 		return
 	}

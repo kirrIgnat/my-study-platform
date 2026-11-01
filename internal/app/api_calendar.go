@@ -17,6 +17,7 @@ type calendarEventJSON struct {
 	Topic              string `json:"topic"`
 	Status             string `json:"status"`
 	MeetingURL         string `json:"meeting_url,omitempty"`
+	ConferenceURL      string `json:"conference_url,omitempty"`
 	Rescheduled        bool   `json:"rescheduled"`
 	ScheduleID         string `json:"schedule_id,omitempty"`
 	PaymentStatus      string `json:"payment_status"`
@@ -27,6 +28,9 @@ func calendarEventsFromBookings(bookings []StudyBooking) []calendarEventJSON {
 	result := make([]calendarEventJSON, 0, len(bookings))
 	for _, b := range bookings {
 		event := calendarEventJSON{ID: b.ID, UserID: b.UserID, UserName: b.UserName, Date: b.Date, Time: b.Time, EndTime: b.EndTime, DurationMinutes: b.DurationMinutes, Timezone: b.Timezone, Topic: b.Topic, Status: b.Status, MeetingURL: b.MeetingURL, Rescheduled: b.Rescheduled, ScheduleID: b.ScheduleID}
+		if b.ConferenceReady {
+			event.ConferenceURL = "/study/conference?id=" + b.ID
+		}
 		if b.Status == "done" && !b.PaymentExcluded {
 			event.PaymentStatus = b.PaymentStatus
 			event.PaymentStatusLabel = b.PaymentStatusLabel

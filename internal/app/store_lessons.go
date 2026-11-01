@@ -15,9 +15,10 @@ func hydrateLessonMarkdown(lesson *StudyLesson) {
 func getAdminLesson(db *AppDB, bookingID string, loc *time.Location) (StudyLesson, error) {
 	rows, err := db.Query(`SELECT b.id,COALESCE(b.schedule_id,''),b.user_id,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.status,
 		u.name,u.email,COALESCE(l.title,''),COALESCE(l.theory,''),COALESCE(l.homework,''),COALESCE(l.video_url,''),
-		COALESCE(l.published,0),COALESCE(l.published_at,0),COALESCE(l.updated_at,0)
+		COALESCE(l.published,0),COALESCE(l.published_at,0),COALESCE(l.updated_at,0),COALESCE(c.room_name,'')
 		FROM bookings b JOIN users u ON u.id=b.user_id
-		LEFT JOIN lesson_materials l ON l.booking_id=b.id WHERE b.id=? LIMIT 1`, bookingID)
+		LEFT JOIN lesson_materials l ON l.booking_id=b.id
+		LEFT JOIN lesson_conferences c ON c.booking_id=b.id WHERE b.id=? LIMIT 1`, bookingID)
 	if err != nil {
 		return StudyLesson{}, err
 	}
@@ -25,7 +26,7 @@ func getAdminLesson(db *AppDB, bookingID string, loc *time.Location) (StudyLesso
 		return StudyLesson{}, errors.New("занятие не найдено")
 	}
 	row := rows[0]
-	lesson := StudyLesson{BookingID: row[0], ScheduleID: row[1], UserID: row[2], Date: row[3], Time: row[4], EndTime: lessonEndTime(row[4]), DurationMinutes: lessonDurationMinutes, Timezone: row[5], Topic: row[6], MeetingURL: row[7], Status: row[8], UserName: row[9], UserEmail: row[10], Title: row[11], Theory: row[12], Homework: row[13], VideoURL: row[14], Published: row[15] == "1"}
+	lesson := StudyLesson{BookingID: row[0], ScheduleID: row[1], UserID: row[2], Date: row[3], Time: row[4], EndTime: lessonEndTime(row[4]), DurationMinutes: lessonDurationMinutes, Timezone: row[5], Topic: row[6], MeetingURL: row[7], Status: row[8], UserName: row[9], UserEmail: row[10], Title: row[11], Theory: row[12], Homework: row[13], VideoURL: row[14], Published: row[15] == "1", ConferenceRoom: row[18], ConferenceReady: row[18] != ""}
 	if ts := parseInt64(row[16]); ts > 0 {
 		lesson.PublishedAt = time.Unix(ts, 0).In(loc)
 	}

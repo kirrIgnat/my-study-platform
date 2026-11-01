@@ -2,14 +2,40 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
-  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260928-slots-1">
+  <meta name="theme-color" content="#071019"><link rel="stylesheet" href="/static/css/study.css?v=20260930-test-edit-1">
 </head>
 <body class="study-body admin-body cabinet-body">
   <div class="study-grid-bg" aria-hidden="true"></div>{{template "cabinet_nav" .}}
   <main class="study-main cabinet-main test-admin-main">
-    <section class="page-title test-template-title"><div><a class="back-link" href="/study/admin/tests">← Все тесты</a><span class="study-kicker">ШАБЛОН ТЕСТА</span><h1>{{.TestTemplate.Title}}</h1><p>{{.TestTemplate.Description}}</p></div><div class="test-title-meta"><span>{{.TestTemplate.QuestionCount}} вопросов</span><span>{{.TestTemplate.MaxScore}} баллов</span><span>{{.TestTemplate.DurationMinutes}} минут</span></div></section>
+    <section class="page-title test-template-title">
+      <div><a class="back-link" href="/study/admin/tests">← Все тесты</a><span class="study-kicker">ШАБЛОН ТЕСТА</span><h1>{{.TestTemplate.Title}}</h1><p>{{.TestTemplate.Description}}</p></div>
+      <div class="test-title-meta"><span>{{.TestTemplate.QuestionCount}} вопросов</span><span>{{.TestTemplate.MaxScore}} баллов</span><span>{{.TestTemplate.DurationMinutes}} минут</span></div>
+    </section>
 
-    <section class="test-admin-layout">
+    {{if .Success}}<div class="study-alert success">{{.Success}}</div>{{end}}
+    {{if .Error}}<div class="study-alert error">{{.Error}}</div>{{end}}
+
+    <section class="study-panel test-live-edit-note">
+      <div><span class="panel-label">ЖИВОЙ ШАБЛОН</span><h2>Изменения распространяются на уже выданные тесты</h2></div>
+      <p>Выдача хранит ссылку на этот шаблон, а не отдельную копию. Поэтому название, описание, вопросы, варианты и правильные ответы обновляются у ученика после перезагрузки страницы. Уже завершённые новые попытки сохраняют снимок вопросов в результате.</p>
+    </section>
+
+    <section class="test-admin-layout test-admin-edit-layout">
+      <article class="study-panel test-edit-panel">
+        <span class="panel-label">НАСТРОЙКИ</span><h2>Редактировать тест</h2>
+        <form class="study-form" method="post" action="/study/admin/tests/update">
+          <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+          <input type="hidden" name="test_id" value="{{.TestTemplate.ID}}">
+          <label><span>Название</span><input type="text" name="title" value="{{.TestTemplate.Title}}" maxlength="180" required></label>
+          <label><span>Описание</span><textarea name="description" rows="6">{{.TestTemplate.Description}}</textarea></label>
+          <div class="test-edit-grid">
+            <label><span>Время по умолчанию, минут</span><input type="number" name="duration_minutes" min="1" max="480" value="{{.TestTemplate.DurationMinutes}}" required></label>
+            <label><span>Статус</span><select name="status"><option value="active" {{if eq .TestTemplate.Status "active"}}selected{{end}}>Активен</option><option value="draft" {{if eq .TestTemplate.Status "draft"}}selected{{end}}>Черновик</option></select></label>
+          </div>
+          <button class="study-button primary" type="submit">Сохранить настройки</button>
+        </form>
+      </article>
+
       <article class="study-panel test-assign-panel">
         <span class="panel-label">ВЫДАТЬ УЧЕНИКУ</span><h2>Новое задание</h2><p class="panel-note">Для привязки к конкретному уроку откройте занятие в календаре. Здесь тест выдаётся напрямую.</p>
         <form class="study-form" method="post" action="/study/admin/tests/assign">
@@ -20,11 +46,42 @@
           <button class="study-button primary wide" type="submit">Выдать тест</button>
         </form>
       </article>
+    </section>
 
-      <article class="study-panel test-preview-panel">
-        <div class="panel-head"><div><span class="panel-label">СОДЕРЖАНИЕ</span><h2>Вопросы</h2></div><span class="counter">{{len .TestQuestions}}</span></div>
-        <div class="test-preview-list">{{range .TestQuestions}}<details class="test-preview-question"><summary><span>{{printf "%02d" .SortOrder}}</span><div><small>{{.Section}}</small><b>{{.Prompt}}</b></div></summary><div class="test-preview-body">{{if .Code}}<pre><code>{{.Code}}</code></pre>{{end}}<div class="test-preview-options">{{range .Options}}<span><b>{{.Key}}.</b> {{.Text}}</span>{{end}}</div>{{if .Scored}}<small class="scored-note">Автоматически проверяется</small>{{else}}<small>Диагностический вопрос · без баллов</small>{{end}}</div></details>{{end}}</div>
-      </article>
+    <section class="study-panel test-question-editor-panel">
+      <div class="panel-head"><div><span class="panel-label">ВОПРОСЫ</span><h2>Редактирование содержания</h2></div><span class="counter">{{len .TestQuestions}}</span></div>
+      <p class="panel-note">Варианты ответа вводятся по одному на строку. Буквы A, B, C… назначаются автоматически. Для нескольких правильных ответов укажи, например, <b>A,C</b>.</p>
+      <div class="test-preview-list test-editor-list">
+        {{range .TestQuestions}}
+        <details class="test-preview-question test-editor-question">
+          <summary><span>{{printf "%02d" .SortOrder}}</span><div><small>{{.Section}}</small><b>{{.Prompt}}</b></div><em>редактировать</em></summary>
+          <form class="study-form test-question-edit-form" method="post" action="/study/admin/tests/question/update">
+            <input type="hidden" name="csrf_token" value="{{$.CSRF}}">
+            <input type="hidden" name="test_id" value="{{$.TestTemplate.ID}}">
+            <input type="hidden" name="question_id" value="{{.ID}}">
+            <div class="test-edit-grid">
+              <label><span>Раздел</span><input type="text" name="section" value="{{.Section}}" maxlength="180"></label>
+              <label><span>Тип вопроса</span><select name="kind">
+                <option value="single" {{if eq .Kind "single"}}selected{{end}}>Один ответ</option>
+                <option value="multiple" {{if eq .Kind "multiple"}}selected{{end}}>Несколько ответов</option>
+                <option value="survey_single" {{if eq .Kind "survey_single"}}selected{{end}}>Опрос · один ответ</option>
+                <option value="survey_multiple" {{if eq .Kind "survey_multiple"}}selected{{end}}>Опрос · несколько ответов</option>
+              </select></label>
+            </div>
+            <label><span>Вопрос</span><textarea name="prompt" rows="4" required>{{.Prompt}}</textarea></label>
+            <label><span>Код <small>необязательно</small></span><textarea class="code-textarea" name="code" rows="6">{{.Code}}</textarea></label>
+            <label><span>Варианты ответа · один вариант на строку</span><textarea name="options" rows="8" required>{{.OptionsText}}</textarea></label>
+            <div class="test-edit-grid">
+              <label><span>Правильные варианты</span><input type="text" name="correct" value="{{.CorrectText}}" placeholder="B или A,C"></label>
+              <label><span>Категория</span><input type="text" name="category" value="{{.Category}}" placeholder="linux / cpp / go / systems"></label>
+            </div>
+            <label class="test-edit-checkbox"><input type="checkbox" name="scored" value="1" {{if .Scored}}checked{{end}}><span>Учитывать вопрос в баллах</span></label>
+            <label><span>Разбор ответа</span><textarea name="explanation" rows="4">{{.Explanation}}</textarea></label>
+            <button class="study-button primary" type="submit">Сохранить вопрос {{printf "%02d" .SortOrder}}</button>
+          </form>
+        </details>
+        {{end}}
+      </div>
     </section>
   </main>{{template "study_footer" .}}
 </body>

@@ -191,6 +191,25 @@ func migrateStudyDB(db *AppDB) error {
             updated_at BIGINT NOT NULL
         )`,
 		`CREATE INDEX IF NOT EXISTS lesson_materials_published_idx ON lesson_materials(published, published_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS lesson_conferences (
+            booking_id TEXT PRIMARY KEY REFERENCES bookings(id) ON DELETE CASCADE,
+            room_name TEXT NOT NULL UNIQUE,
+            created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+            created_at BIGINT NOT NULL,
+            updated_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS lesson_conferences_created_idx ON lesson_conferences(created_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS lesson_recordings (
+            id TEXT PRIMARY KEY,
+            booking_id TEXT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+            relative_path TEXT NOT NULL UNIQUE,
+            file_name TEXT NOT NULL,
+            mime_type TEXT NOT NULL DEFAULT 'video/mp4',
+            size_bytes BIGINT NOT NULL DEFAULT 0,
+            student_visible INTEGER NOT NULL DEFAULT 0 CHECK(student_visible IN (0,1)),
+            created_at BIGINT NOT NULL
+        )`,
+		`CREATE INDEX IF NOT EXISTS lesson_recordings_booking_idx ON lesson_recordings(booking_id,created_at DESC)`,
 		`CREATE TABLE IF NOT EXISTS homework_tasks (
             id TEXT PRIMARY KEY,
             public_id TEXT NOT NULL DEFAULT '',

@@ -90,11 +90,13 @@ func listUserBookings(db *AppDB, userID string, loc *time.Location) ([]StudyBook
 	rows, err := db.Query(`SELECT b.id,b.user_id,b.slot_start,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.week_key,b.status,b.created_at,
 		COALESCE(b.schedule_id,''),COALESCE(b.occurrence_key,''),COALESCE(b.original_date,''),COALESCE(b.original_time,''),COALESCE(b.rescheduled,0),
 		COALESCE(p.id,''),COALESCE(p.status,'unpaid'),COALESCE(p.requested_at,0),COALESCE(p.reviewed_at,0),COALESCE(p.teacher_note,''),
-		COALESCE(q.qr_data_url,''),COALESCE(q.updated_at,0),CASE WHEN x.booking_id IS NULL THEN 0 ELSE 1 END
+		COALESCE(q.qr_data_url,''),COALESCE(q.updated_at,0),CASE WHEN x.booking_id IS NULL THEN 0 ELSE 1 END,
+		CASE WHEN c.booking_id IS NULL THEN 0 ELSE 1 END
 		FROM bookings b
 		LEFT JOIN lesson_payments p ON p.booking_id=b.id
 		LEFT JOIN lesson_payment_qr q ON q.booking_id=b.id
 		LEFT JOIN lesson_payment_exclusions x ON x.booking_id=b.id
+		LEFT JOIN lesson_conferences c ON c.booking_id=b.id
 		WHERE b.user_id=? ORDER BY b.slot_start DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -103,6 +105,7 @@ func listUserBookings(db *AppDB, userID string, loc *time.Location) ([]StudyBook
 	for _, row := range rows {
 		booking := bookingFromRow(row[:16], loc)
 		applyPaymentRow(&booking, row[16:24], loc)
+		booking.ConferenceReady = len(row) > 24 && row[24] == "1"
 		result = append(result, booking)
 	}
 	return result, nil
@@ -113,12 +116,14 @@ func listAdminBookings(db *AppDB, loc *time.Location) ([]StudyBooking, error) {
 	rows, err := db.Query(`SELECT b.id,b.user_id,b.slot_start,b.date,b.time,b.timezone,b.topic,b.meeting_url,b.week_key,b.status,b.created_at,
 		COALESCE(b.schedule_id,''),COALESCE(b.occurrence_key,''),COALESCE(b.original_date,''),COALESCE(b.original_time,''),COALESCE(b.rescheduled,0),
 		u.name,u.email,u.telegram,COALESCE(p.id,''),COALESCE(p.status,'unpaid'),COALESCE(p.requested_at,0),COALESCE(p.reviewed_at,0),COALESCE(p.teacher_note,''),
-		COALESCE(q.qr_data_url,''),COALESCE(q.updated_at,0),CASE WHEN x.booking_id IS NULL THEN 0 ELSE 1 END
+		COALESCE(q.qr_data_url,''),COALESCE(q.updated_at,0),CASE WHEN x.booking_id IS NULL THEN 0 ELSE 1 END,
+		CASE WHEN c.booking_id IS NULL THEN 0 ELSE 1 END
 		FROM bookings b
 		JOIN users u ON u.id=b.user_id
 		LEFT JOIN lesson_payments p ON p.booking_id=b.id
 		LEFT JOIN lesson_payment_qr q ON q.booking_id=b.id
 		LEFT JOIN lesson_payment_exclusions x ON x.booking_id=b.id
+		LEFT JOIN lesson_conferences c ON c.booking_id=b.id
 		ORDER BY CASE WHEN b.slot_start>=? THEN 0 ELSE 1 END,
 		CASE WHEN b.slot_start>=? THEN b.slot_start END ASC,
 		CASE WHEN b.slot_start<? THEN b.slot_start END DESC LIMIT 500`, nowUnix, nowUnix, nowUnix)
@@ -130,6 +135,7 @@ func listAdminBookings(db *AppDB, loc *time.Location) ([]StudyBooking, error) {
 		booking := bookingFromRow(row[:16], loc)
 		booking.UserName, booking.UserEmail, booking.Telegram = row[16], row[17], row[18]
 		applyPaymentRow(&booking, row[19:27], loc)
+		booking.ConferenceReady = len(row) > 27 && row[27] == "1"
 		result = append(result, booking)
 	}
 	return result, nil

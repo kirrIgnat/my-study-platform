@@ -1893,3 +1893,307 @@ label.test-option:has(input:checked) { border-color: rgba(118,209,197,.38); back
 }
 
 .payment-delete-form { margin: 0; justify-self: start; }
+
+/* =========================
+   JITSI / LESSON CONFERENCE
+========================= */
+.conference-main { width: min(1480px, calc(100% - 32px)); }
+.conference-title { align-items: flex-end; }
+.conference-secure-badge {
+  display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px;
+  border: 1px solid rgba(118, 210, 201, .3); border-radius: 999px;
+  color: #83d7cf; background: rgba(93, 190, 181, .08); font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .12em;
+}
+.conference-consent { margin-bottom: 16px; }
+.conference-record-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 16px;
+}
+.conference-record-toolbar h2 { margin: 6px 0; }
+.conference-record-toolbar p { margin: 0; color: var(--study-muted); }
+.conference-record-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.recording-state { color: var(--study-muted); font-size: 12px; }
+.recording-state.is-recording { color: #ff8f93; font-weight: 800; }
+.conference-shell {
+  position: relative; min-height: 720px; height: calc(100vh - 250px); max-height: 980px;
+  overflow: hidden; border: 1px solid rgba(121, 185, 201, .2); border-radius: 22px;
+  background: #04090d; box-shadow: 0 28px 80px rgba(0, 0, 0, .28);
+}
+.conference-frame { position: absolute; inset: 0; }
+.conference-frame iframe { display: block; width: 100% !important; height: 100% !important; border: 0; }
+.conference-loading {
+  position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; text-align: center;
+  color: var(--study-text); background: #071019;
+}
+.conference-loading span { color: var(--study-muted); }
+.conference-frame.is-connected > .conference-loading,
+.conference-standalone-frame.is-connected > .conference-loading { display: none; }
+.conference-live-indicator {
+  position: absolute; z-index: 8; top: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 999px;
+  border: 1px solid rgba(255, 100, 106, .45); background: rgba(44, 10, 14, .92); color: #ff9aa0;
+  font: 800 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em;
+}
+.conference-live-indicator[hidden] { display: none; }
+.conference-live-indicator span { width: 8px; height: 8px; border-radius: 50%; background: #ff656b; box-shadow: 0 0 12px rgba(255, 101, 107, .7); }
+.conference-recordings-panel { margin-top: 16px; }
+.conference-recording-list { display: grid; gap: 10px; }
+.conference-recording-list article {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px;
+  border: 1px solid var(--study-line); border-radius: 13px; background: rgba(255,255,255,.015);
+}
+.conference-recording-list article > div { min-width: 0; display: grid; gap: 5px; }
+.conference-recording-list b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conference-recording-list span { color: var(--study-muted); font-size: 12px; }
+.lesson-jitsi-card { margin-top: 18px; padding: 16px; border: 1px solid var(--study-line); border-radius: 14px; background: rgba(79, 182, 176, .045); }
+.lesson-jitsi-card .lesson-jitsi-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.lesson-jitsi-card h3 { margin: 5px 0 4px; }
+.lesson-jitsi-card p { margin: 0; color: var(--study-muted); font-size: 13px; }
+.lesson-jitsi-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.lesson-recordings-admin { margin-top: 16px; }
+.lesson-recordings-admin-list { display: grid; gap: 10px; }
+.lesson-recordings-admin-list article { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 14px; border: 1px solid var(--study-line); border-radius: 12px; }
+.lesson-recordings-admin-list article > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.lesson-recordings-admin-list article b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-recordings-admin-list article span { color: var(--study-muted); font-size: 12px; }
+.lesson-recording-admin-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.lesson-recording-links { display: grid; gap: 8px; margin-top: 10px; }
+.lesson-recording-links a { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--study-line); border-radius: 10px; }
+.lesson-recording-links a span { color: var(--study-muted); font-size: 12px; }
+@media (max-width: 760px) {
+  .conference-main { width: min(100% - 16px, 1480px); }
+  .conference-record-toolbar { align-items: stretch; flex-direction: column; }
+  .conference-record-actions { justify-content: flex-start; }
+  .conference-shell { min-height: 560px; height: 72vh; border-radius: 16px; }
+  .conference-recording-list article, .lesson-recordings-admin-list article { grid-template-columns: 1fr; align-items: stretch; }
+  .lesson-recording-admin-actions { justify-content: flex-start; }
+}
+
+/* Standalone Jitsi tab: the conference is the entire page. */
+html:has(body.conference-standalone-body) {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+body.conference-standalone-body {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.conference-standalone-frame {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  min-width: 100vw;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+.conference-standalone-frame iframe {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  border: 0 !important;
+}
+
+/* Teacher-only server recording controls in the standalone conference tab. */
+.conference-floating-record {
+  position: fixed;
+  z-index: 10000;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 28px);
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 13px;
+  background: rgba(5, 10, 15, .82);
+  color: #edf5f7;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.conference-record-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+  color: rgba(237, 245, 247, .78);
+}
+
+.conference-record-status.unavailable {
+  color: rgba(237, 245, 247, .58);
+}
+
+.conference-record-status.is-recording {
+  color: #ff9ca1;
+}
+
+.conference-record-status.is-pending {
+  color: #f4d68b;
+}
+
+.conference-record-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #ff5f67;
+  box-shadow: 0 0 0 4px rgba(255, 95, 103, .12), 0 0 14px rgba(255, 95, 103, .75);
+}
+
+.conference-record-dot[hidden] {
+  display: none;
+}
+
+.conference-record-buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.conference-record-button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .07);
+  color: #f3f7f8;
+  font: inherit;
+  cursor: pointer;
+}
+
+.conference-record-button.start:not(:disabled):hover {
+  border-color: rgba(255, 100, 108, .52);
+  background: rgba(255, 82, 91, .16);
+}
+
+.conference-record-button.stop:not(:disabled):hover {
+  border-color: rgba(255, 255, 255, .3);
+  background: rgba(255, 255, 255, .11);
+}
+
+.conference-record-button:disabled {
+  opacity: .42;
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .conference-floating-record {
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    top: max(10px, env(safe-area-inset-top));
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .conference-record-buttons {
+    margin-left: auto;
+  }
+}
+
+
+
+/* Test template live editor. */
+.test-live-edit-note {
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: minmax(260px, .8fr) minmax(320px, 1.2fr);
+  gap: 22px;
+  align-items: center;
+}
+
+.test-live-edit-note h2 {
+  margin: 5px 0 0;
+}
+
+.test-live-edit-note p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.test-admin-edit-layout {
+  align-items: start;
+}
+
+.test-edit-panel .study-form,
+.test-question-edit-form {
+  margin-top: 18px;
+}
+
+.test-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.test-question-editor-panel {
+  margin-top: 18px;
+}
+
+.test-editor-list {
+  margin-top: 16px;
+}
+
+.test-editor-question > summary em {
+  margin-left: auto;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 12px;
+}
+
+.test-question-edit-form {
+  padding: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.test-question-edit-form textarea {
+  resize: vertical;
+}
+
+.test-question-edit-form .code-textarea {
+  min-height: 130px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  tab-size: 4;
+}
+
+.test-edit-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+}
+
+.test-edit-checkbox input {
+  width: auto !important;
+  margin: 0;
+}
+
+.test-edit-checkbox span {
+  margin: 0 !important;
+}
+
+@media (max-width: 820px) {
+  .test-live-edit-note,
+  .test-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}

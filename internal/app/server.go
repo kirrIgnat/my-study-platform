@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -32,14 +33,20 @@ func mustLoadTemplates() *template.Template {
 }
 
 func securityHeaders(next http.Handler) http.Handler {
+	jitsiOrigin, jitsiWebsocket := jitsiSecuritySources()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
-		h.Set("Content-Security-Policy", "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'")
+		if r.URL.Path == "/study/conference" && jitsiOrigin != "" {
+			h.Set("Permissions-Policy", fmt.Sprintf(`camera=(self %q), microphone=(self %q), display-capture=(self %q), geolocation=(), payment=(), usb=()`, jitsiOrigin, jitsiOrigin, jitsiOrigin))
+			h.Set("Content-Security-Policy", fmt.Sprintf("default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' %s; font-src 'self'; connect-src 'self' %s %s; frame-src %s", jitsiOrigin, jitsiOrigin, jitsiWebsocket, jitsiOrigin))
+		} else {
+			h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+			h.Set("Content-Security-Policy", "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'")
+		}
 		next.ServeHTTP(w, r)
 	})
 }

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>{{.Title}}</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="stylesheet" href="/static/css/study.css?v=20260930-jitsi-fullscreen-1">
+</head>
+<body class="conference-standalone-body">
+  <div
+    id="jitsiMeet"
+    class="conference-standalone-frame"
+    data-domain="{{.JitsiDomain}}"
+    data-room="{{.JitsiRoom}}"
+    data-jwt="{{.JitsiJWT}}"
+    data-booking-id="{{.Lesson.BookingID}}"
+    data-user-name="{{.User.Name}}"
+    data-user-email="{{.User.Email}}"
+    data-moderator="{{if .ConferenceModerator}}1{{else}}0{{end}}">
+    <div class="conference-loading">
+      <b>Подключаю конференцию…</b>
+      <span>Разрешите браузеру доступ к камере и микрофону.</span>
+    </div>
+  </div>
+
+  {{if .ConferenceModerator}}
+  <aside class="conference-floating-record" aria-label="Управление записью конференции">
+    {{if .JitsiRecordingEnabled}}
+      <div class="conference-record-status">
+        <span class="conference-record-dot" data-live-recording hidden></span>
+        <span data-recording-state>Запись выключена</span>
+      </div>
+      <div class="conference-record-buttons">
+        <button class="conference-record-button start" type="button" data-record-start disabled>● Начать запись</button>
+        <button class="conference-record-button stop" type="button" data-record-stop disabled>■ Остановить</button>
+      </div>
+    {{else}}
+      <div class="conference-record-status unavailable">
+        <span>Запись недоступна: Jibri не подключён</span>
+      </div>
+    {{end}}
+  </aside>
+  {{end}}
+
+  <script src="{{.JitsiPublicURL}}/external_api.js"></script>
+  <script src="/static/js/study_conference.js?v=20260930-fullscreen-recording-2"></script>
+</body>
+</html>

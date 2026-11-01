@@ -49,7 +49,7 @@
         const student = role === 'admin' && event.user_name ? `<small>${escapeHTML(event.user_name)}</small>` : '';
         const action = role === 'admin'
           ? `<a href="/study/admin/lesson?id=${encodeURIComponent(event.id)}">Управлять занятием →</a>`
-          : (event.meeting_url ? `<a href="${escapeHTML(event.meeting_url)}" target="_blank" rel="noopener noreferrer">Войти в конференцию ↗</a>` : '<span>Ссылка появится позже</span>');
+          : (event.conference_url ? `<a href="${escapeHTML(event.conference_url)}" target="_blank" rel="noopener noreferrer">Войти в конференцию →</a>` : (event.meeting_url ? `<a href="${escapeHTML(event.meeting_url)}" target="_blank" rel="noopener noreferrer">Войти во внешнюю конференцию ↗</a>` : '<span>Конференция появится после создания преподавателем</span>'));
         const paymentClass = event.status === 'done' && event.payment_status ? `payment-${event.payment_status}` : '';
         const paymentLabel = event.status === 'done' && event.payment_status_label ? ` · ${event.payment_status_label}` : '';
         return `<article class="calendar-event ${escapeHTML(event.status)} ${escapeHTML(paymentClass)}"><time>${escapeHTML(event.time)}${event.end_time ? `–${escapeHTML(event.end_time)}` : ''}</time><div><b>${escapeHTML(titleText)}</b>${student}<em>${escapeHTML(event.status)}${escapeHTML(paymentLabel)}${event.rescheduled ? ' · перенесено' : ''}</em></div>${action}</article>`;

@@ -53,6 +53,15 @@ type StudyPageData struct {
 	PaymentBookings              []StudyBooking
 	LessonPayments               []LessonPayment
 	PendingPaymentCount          int
+	Conference                   LessonConference
+	Recordings                   []LessonRecording
+	JitsiEnabled                 bool
+	JitsiRecordingEnabled        bool
+	JitsiPublicURL               string
+	JitsiDomain                  string
+	JitsiRoom                    string
+	JitsiJWT                     string
+	ConferenceModerator          bool
 }
 
 type StudyApp struct {
@@ -62,6 +71,7 @@ type StudyApp struct {
 	schedule          map[time.Weekday][]string
 	tg                *TelegramNotifier
 	defaultMeetingURL string
+	jitsi             jitsiConfig
 }
 
 func NewStudyApp(db *AppDB, auth *AuthService) *StudyApp {
@@ -70,7 +80,7 @@ func NewStudyApp(db *AppDB, auth *AuthService) *StudyApp {
 		log.Printf("ignoring invalid DEFAULT_MEETING_URL")
 		meetingURL = ""
 	}
-	return &StudyApp{db: db, auth: auth, loc: bookingTimezone(), schedule: bookingSchedule(), tg: NewTelegramNotifier(), defaultMeetingURL: meetingURL}
+	return &StudyApp{db: db, auth: auth, loc: bookingTimezone(), schedule: bookingSchedule(), tg: NewTelegramNotifier(), defaultMeetingURL: meetingURL, jitsi: loadJitsiConfig()}
 }
 
 func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
@@ -96,6 +106,12 @@ func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/study/admin/homework/status", s.adminHomeworkStatus)
 	mux.HandleFunc("/study/homework", s.studentHomeworkView)
 	mux.HandleFunc("/study/homework/submit", s.studentHomeworkSubmit)
+	mux.HandleFunc("/study/conference", s.conferencePage)
+	mux.HandleFunc("/study/recording", s.lessonRecordingFile)
+	mux.HandleFunc("/study/admin/conference/create", s.adminConferenceCreate)
+	mux.HandleFunc("/study/admin/conference/delete", s.adminConferenceDelete)
+	mux.HandleFunc("/study/admin/recording/visibility", s.adminRecordingVisibility)
+	mux.HandleFunc("/study/admin/recording/delete", s.adminRecordingDelete)
 	mux.HandleFunc("/study/payment", s.studentPaymentsPage)
 	mux.HandleFunc("/study/payment/submit", s.studentPaymentSubmit)
 	mux.HandleFunc("/study/admin/payments", s.adminPaymentsPage)
@@ -107,6 +123,8 @@ func (s *StudyApp) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/study/admin/reschedule/resolve", s.adminResolveReschedule)
 	mux.HandleFunc("/study/admin/tests", s.adminTests)
 	mux.HandleFunc("/study/admin/tests/view", s.adminTestView)
+	mux.HandleFunc("/study/admin/tests/update", s.adminTestUpdate)
+	mux.HandleFunc("/study/admin/tests/question/update", s.adminTestQuestionUpdate)
 	mux.HandleFunc("/study/admin/tests/assign", s.adminTestAssign)
 	mux.HandleFunc("/study/admin/tests/result", s.adminTestResult)
 	mux.HandleFunc("/study/test", s.studyTest)

@@ -152,6 +152,156 @@ func loadTestQuestions(db dbExecutor, testID string) ([]TestQuestion, error) {
 	return result, nil
 }
 
+func updateTestTemplate(db *AppDB, testID, title, description string, durationMinutes int, status string) error {
+	testID = strings.TrimSpace(testID)
+	title = strings.TrimSpace(title)
+	description = strings.TrimSpace(description)
+	status = strings.TrimSpace(status)
+	if testID == "" {
+		return errors.New("тест не найден")
+	}
+	if title == "" {
+		return errors.New("название теста не может быть пустым")
+	}
+	if durationMinutes < 1 || durationMinutes > 480 {
+		return errors.New("длительность теста должна быть от 1 до 480 минут")
+	}
+	if status != "active" && status != "draft" {
+		return errors.New("некорректный статус теста")
+	}
+
+	return db.WithTx(func(tx *dbTx) error {
+		rows, err := tx.query(`SELECT duration_minutes FROM test_templates WHERE id=? LIMIT 1`, testID)
+		if err != nil {
+			return err
+		}
+		if len(rows) == 0 {
+			return errors.New("тест не найден")
+		}
+		oldDuration := parseInt(rows[0][0])
+		now := time.Now().UTC().Unix()
+		if err := tx.exec(`UPDATE test_templates SET title=?,description=?,duration_minutes=?,status=?,updated_at=? WHERE id=?`,
+			title, description, durationMinutes, status, now, testID); err != nil {
+			return err
+		}
+
+		if oldDuration != durationMinutes {
+			if err := tx.exec(`UPDATE test_assignments
+				SET time_limit_minutes=?
+				WHERE test_id=? AND status='active' AND time_limit_minutes=?
+				AND NOT EXISTS (SELECT 1 FROM test_attempts at WHERE at.assignment_id=test_assignments.id)`,
+				durationMinutes, testID, oldDuration); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func parseTestOptionsText(raw string) ([]TestOption, error) {
+	lines := strings.Split(strings.ReplaceAll(raw, "\r\n", "\n"), "\n")
+	options := make([]TestOption, 0, len(lines))
+	for _, line := range lines {
+		text := strings.TrimSpace(line)
+		if text == "" {
+			continue
+		}
+		if len(options) >= 26 {
+			return nil, errors.New("в одном вопросе можно сохранить не более 26 вариантов")
+		}
+		options = append(options, TestOption{Key: string(rune('A' + len(options))), Text: text})
+	}
+	if len(options) < 2 {
+		return nil, errors.New("добавьте минимум два варианта ответа")
+	}
+	return options, nil
+}
+
+func parseTestCorrectText(raw string, options []TestOption, kind string, scored bool) ([]string, error) {
+	if !scored {
+		return []string{}, nil
+	}
+	allowed := make(map[string]bool, len(options))
+	for _, option := range options {
+		allowed[option.Key] = true
+	}
+	fields := strings.FieldsFunc(strings.ToUpper(raw), func(r rune) bool {
+		return r == ',' || r == ';' || r == ' ' || r == '\n' || r == '\t'
+	})
+	seen := map[string]bool{}
+	correct := make([]string, 0, len(fields))
+	for _, field := range fields {
+		key := strings.TrimSpace(field)
+		if key == "" || seen[key] {
+			continue
+		}
+		if !allowed[key] {
+			return nil, fmt.Errorf("вариант %s отсутствует в списке ответов", key)
+		}
+		seen[key] = true
+		correct = append(correct, key)
+	}
+	sort.Strings(correct)
+	if len(correct) == 0 {
+		return nil, errors.New("для оцениваемого вопроса укажите правильный ответ")
+	}
+	if kind == "single" && len(correct) != 1 {
+		return nil, errors.New("для вопроса с одним ответом должен быть выбран ровно один правильный вариант")
+	}
+	return correct, nil
+}
+
+func updateTestQuestion(db *AppDB, testID, questionID, section, prompt, code, kind, optionsRaw, correctRaw, explanation, category string, scored bool) error {
+	testID = strings.TrimSpace(testID)
+	questionID = strings.TrimSpace(questionID)
+	section = strings.TrimSpace(section)
+	prompt = strings.TrimSpace(prompt)
+	code = strings.TrimSpace(code)
+	kind = strings.TrimSpace(kind)
+	explanation = strings.TrimSpace(explanation)
+	category = strings.TrimSpace(category)
+
+	switch kind {
+	case "single", "multiple", "survey_single", "survey_multiple":
+	default:
+		return errors.New("некорректный тип вопроса")
+	}
+	if strings.HasPrefix(kind, "survey_") {
+		scored = false
+	}
+	if prompt == "" {
+		return errors.New("текст вопроса не может быть пустым")
+	}
+	options, err := parseTestOptionsText(optionsRaw)
+	if err != nil {
+		return err
+	}
+	correct, err := parseTestCorrectText(correctRaw, options, kind, scored)
+	if err != nil {
+		return err
+	}
+	optionsJSON, _ := json.Marshal(options)
+	correctJSON, _ := json.Marshal(correct)
+	scoredInt := 0
+	if scored {
+		scoredInt = 1
+	}
+	rows, err := db.Query(`SELECT id FROM test_questions WHERE id=? AND test_id=? LIMIT 1`, questionID, testID)
+	if err != nil {
+		return err
+	}
+	if len(rows) == 0 {
+		return errors.New("вопрос не найден")
+	}
+	if err := db.Exec(`UPDATE test_questions
+		SET section=?,prompt=?,code=?,kind=?,options_json=?,correct_json=?,explanation=?,category=?,scored=?
+		WHERE id=? AND test_id=?`,
+		section, prompt, code, kind, string(optionsJSON), string(correctJSON), explanation, category, scoredInt, questionID, testID); err != nil {
+		return err
+	}
+	return db.Exec(`UPDATE test_templates SET updated_at=? WHERE id=?`, time.Now().UTC().Unix(), testID)
+}
+
 func assignTest(db *AppDB, adminID, testID, studentID, bookingID, attachMode string, deadline time.Time, timeLimit int, loc *time.Location) (TestAssignment, error) {
 	attachMode = strings.TrimSpace(attachMode)
 	if attachMode != "direct" && attachMode != "lesson" && attachMode != "homework" {
@@ -344,7 +494,7 @@ func startTestAttempt(db *AppDB, assignment TestAssignment) (TestAttempt, error)
 }
 
 func getTestAttemptByAssignment(db *AppDB, assignmentID string) (TestAttempt, error) {
-	rows, err := db.Query(`SELECT id,assignment_id,user_id,status,started_at,COALESCE(expires_at,0),COALESCE(submitted_at,0),score,max_score,answers_json,updated_at
+	rows, err := db.Query(`SELECT id,assignment_id,user_id,status,started_at,COALESCE(expires_at,0),COALESCE(submitted_at,0),score,max_score,answers_json,result_json,updated_at
 		FROM test_attempts WHERE assignment_id=? LIMIT 1`, assignmentID)
 	if err != nil {
 		return TestAttempt{}, err
@@ -353,7 +503,14 @@ func getTestAttemptByAssignment(db *AppDB, assignmentID string) (TestAttempt, er
 		return TestAttempt{}, nil
 	}
 	r := rows[0]
-	attempt := TestAttempt{ID: r[0], AssignmentID: r[1], UserID: r[2], Status: r[3], StartedAt: time.Unix(parseInt64(r[4]), 0).UTC(), Score: parseInt(r[7]), MaxScore: parseInt(r[8]), Answers: decodeAnswers(r[9]), UpdatedAt: time.Unix(parseInt64(r[10]), 0).UTC()}
+	attempt := TestAttempt{ID: r[0], AssignmentID: r[1], UserID: r[2], Status: r[3], StartedAt: time.Unix(parseInt64(r[4]), 0).UTC(), Score: parseInt(r[7]), MaxScore: parseInt(r[8]), Answers: decodeAnswers(r[9]), UpdatedAt: time.Unix(parseInt64(r[11]), 0).UTC()}
+	var result struct {
+		Breakdown []TestBreakdown `json:"breakdown"`
+		Questions []TestQuestion  `json:"questions"`
+	}
+	_ = json.Unmarshal([]byte(r[10]), &result)
+	attempt.ResultBreakdown = result.Breakdown
+	attempt.ResultQuestions = result.Questions
 	if ts := parseInt64(r[5]); ts > 0 {
 		attempt.ExpiresAt = time.Unix(ts, 0).UTC()
 	}
@@ -470,7 +627,7 @@ func finalizeTestAttempt(db *AppDB, attemptID, finalStatus string) (TestAttempt,
 		}
 		answers := decodeAnswers(r[2])
 		score, maxScore, breakdown := evaluateTest(questions, answers)
-		resultJSON, _ := json.Marshal(map[string]any{"breakdown": breakdown})
+		resultJSON, _ := json.Marshal(map[string]any{"breakdown": breakdown, "questions": questions})
 		now := time.Now().UTC().Unix()
 		if err := tx.exec(`UPDATE test_attempts SET status=?,submitted_at=?,score=?,max_score=?,result_json=?,updated_at=? WHERE id=? AND status='in_progress'`, finalStatus, now, score, maxScore, string(resultJSON), now, attemptID); err != nil {
 			return err
@@ -527,9 +684,9 @@ func evaluateTest(questions []TestQuestion, answers map[string][]string) (int, i
 func diagnosticLevel(category string, score, max int) string {
 	if category == "go" {
 		if score == 1 {
-			return "Правильный ответ ещё не означает знание Go; практический уровень стоит проверить отдельной задачей."
+			return ""
 		}
-		return "Знакомство с терминологией Go по этому вопросу не подтверждено."
+		return ""
 	}
 	if max != 5 {
 		return ""
@@ -538,41 +695,41 @@ func diagnosticLevel(category string, score, max int) string {
 	case "linux":
 		switch score {
 		case 0, 1:
-			return "Практически нет базы."
+			return ""
 		case 2:
-			return "Знаком с отдельными командами и понятиями."
+			return ""
 		case 3:
-			return "Начальный практический уровень."
+			return ""
 		case 4:
-			return "Хорошая базовая подготовка."
+			return ""
 		case 5:
-			return "Уверенная база; можно быстро уходить от простых команд к процессам, файловой системе, shell и устройству Linux."
+			return ""
 		}
 	case "cpp":
 		switch score {
 		case 0, 1:
-			return "Программирование нужно начинать почти с основ."
+			return ""
 		case 2:
-			return "Основные понятия знакомы, но знания фрагментарные."
+			return ""
 		case 3:
-			return "Есть рабочая база."
+			return ""
 		case 4:
-			return "Хороший базовый уровень."
+			return ""
 		case 5:
-			return "Базовые вопросы слишком просты — стоит проверять практической задачей, памятью, структурами данных, RAII, компиляцией и отладкой."
+			return ""
 		}
 	case "systems":
 		switch score {
 		case 0, 1:
-			return "Направление практически новое."
+			return ""
 		case 2:
-			return "Слышал основные термины."
+			return ""
 		case 3:
-			return "Есть начальное понимание инструментов и систем."
+			return ""
 		case 4:
-			return "Хорошая база."
+			return ""
 		case 5:
-			return "Можно проверять реальный практический опыт: Dockerfile, systemd, сеть, SSH, Git, процессы, логи и диагностику."
+			return ""
 		}
 	}
 	return ""
@@ -610,7 +767,16 @@ func makeTestQuestionViews(questions []TestQuestion, answers map[string][]string
 		for _, answer := range q.Correct {
 			correct[answer] = true
 		}
-		view := TestQuestionView{ID: q.ID, SortOrder: q.SortOrder, Section: q.Section, Prompt: q.Prompt, Code: q.Code, Kind: q.Kind, Scored: q.Scored, Explanation: q.Explanation, Answered: len(answers[q.ID]) > 0}
+		optionLines := make([]string, 0, len(q.Options))
+		for _, option := range q.Options {
+			optionLines = append(optionLines, option.Text)
+		}
+		view := TestQuestionView{
+			ID: q.ID, SortOrder: q.SortOrder, Section: q.Section, Prompt: q.Prompt, Code: q.Code,
+			Kind: q.Kind, Category: q.Category, Scored: q.Scored, Explanation: q.Explanation,
+			OptionsText: strings.Join(optionLines, "\n"), CorrectText: strings.Join(q.Correct, ","),
+			Answered: len(answers[q.ID]) > 0,
+		}
 		if q.Scored && finished {
 			view.IsCorrect = sameAnswers(answers[q.ID], q.Correct)
 		}

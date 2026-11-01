@@ -172,7 +172,12 @@ curl -I http://127.0.0.1:3000/study
 
 Дальше проверьте сценарий: регистрация студента → один или несколько постоянных слотов → ЛК и календарь → перенос → уведомление админу → согласование → материал/ДЗ → уведомление студенту.
 
-## 9. Backup PostgreSQL
+## 9. Jitsi Meet и запись занятий
+
+Для встроенных приватных конференций и серверной записи через Jibri см. `deploy/jitsi/README.md`.
+Jitsi работает на отдельном HTTPS-origin (например, `https://meet.example.com`), а приложение выдаёт JWT только авторизованному участнику конкретного занятия.
+
+## 10. Backup PostgreSQL
 
 ```bash
 sudo install -d -m 0700 /var/backups/kirill-study
@@ -190,7 +195,7 @@ sudo -u postgres psql -d kirill_study_restore_test -c 'SELECT COUNT(*) FROM user
 sudo -u postgres dropdb kirill_study_restore_test
 ```
 
-## 10. Обновление приложения
+## 11. Обновление приложения
 
 Перед обновлением сделайте `pg_dump`, затем:
 

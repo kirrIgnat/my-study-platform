@@ -50,9 +50,12 @@ type TestQuestionView struct {
 	Prompt      string
 	Code        string
 	Kind        string
+	Category    string
 	Scored      bool
 	Explanation string
 	Options     []TestOptionView
+	OptionsText string
+	CorrectText string
 	Answered    bool
 	IsCorrect   bool
 }
@@ -84,17 +87,19 @@ type TestAssignment struct {
 }
 
 type TestAttempt struct {
-	ID           string
-	AssignmentID string
-	UserID       string
-	Status       string
-	StartedAt    time.Time
-	ExpiresAt    time.Time
-	SubmittedAt  time.Time
-	UpdatedAt    time.Time
-	Score        int
-	MaxScore     int
-	Answers      map[string][]string
+	ID              string
+	AssignmentID    string
+	UserID          string
+	Status          string
+	StartedAt       time.Time
+	ExpiresAt       time.Time
+	SubmittedAt     time.Time
+	UpdatedAt       time.Time
+	Score           int
+	MaxScore        int
+	Answers         map[string][]string
+	ResultQuestions []TestQuestion
+	ResultBreakdown []TestBreakdown
 }
 
 type TestBreakdown struct {

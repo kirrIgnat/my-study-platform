@@ -43,7 +43,86 @@ func (s *StudyApp) adminTestView(w http.ResponseWriter, r *http.Request) {
 	data.TestTemplate = test
 	data.Students, _ = listStudents(s.db)
 	data.TestQuestions = makeTestQuestionViews(test.Questions, map[string][]string{}, false)
+	switch r.URL.Query().Get("saved") {
+	case "meta":
+		data.Success = "Настройки теста сохранены. Изменения уже видны во всех активных выдачах."
+	case "question":
+		data.Success = "Вопрос сохранён. Ученики с этим тестом увидят новую версию после обновления страницы."
+	}
 	renderStudy(w, "study_admin_test.html", data)
+}
+
+func (s *StudyApp) renderAdminTestEditError(w http.ResponseWriter, r *http.Request, testID, message string) {
+	test, err := getTestTemplate(s.db, testID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	data := s.baseData(w, r, test.Title+" — MY.STUDY", "admin")
+	data.CabinetTab = "tests"
+	data.TestTemplate = test
+	data.Students, _ = listStudents(s.db)
+	data.TestQuestions = makeTestQuestionViews(test.Questions, map[string][]string{}, false)
+	data.Error = message
+	renderStudy(w, "study_admin_test.html", data)
+}
+
+func (s *StudyApp) adminTestUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
+		return
+	}
+	session := s.requireAdmin(w, r)
+	if session == nil {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 128<<10)
+	if err := r.ParseForm(); err != nil || !s.auth.VerifyCSRF(r, session) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	testID := strings.TrimSpace(r.FormValue("test_id"))
+	duration, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("duration_minutes")))
+	if err := updateTestTemplate(s.db, testID, r.FormValue("title"), r.FormValue("description"), duration, r.FormValue("status")); err != nil {
+		s.renderAdminTestEditError(w, r, testID, err.Error())
+		return
+	}
+	http.Redirect(w, r, "/study/admin/tests/view?id="+testID+"&saved=meta", http.StatusSeeOther)
+}
+
+func (s *StudyApp) adminTestQuestionUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
+		return
+	}
+	session := s.requireAdmin(w, r)
+	if session == nil {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+	if err := r.ParseForm(); err != nil || !s.auth.VerifyCSRF(r, session) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	testID := strings.TrimSpace(r.FormValue("test_id"))
+	if err := updateTestQuestion(
+		s.db,
+		testID,
+		r.FormValue("question_id"),
+		r.FormValue("section"),
+		r.FormValue("prompt"),
+		r.FormValue("code"),
+		r.FormValue("kind"),
+		r.FormValue("options"),
+		r.FormValue("correct"),
+		r.FormValue("explanation"),
+		r.FormValue("category"),
+		r.FormValue("scored") == "1",
+	); err != nil {
+		s.renderAdminTestEditError(w, r, testID, err.Error())
+		return
+	}
+	http.Redirect(w, r, "/study/admin/tests/view?id="+testID+"&saved=question", http.StatusSeeOther)
 }
 
 func (s *StudyApp) adminTestAssign(w http.ResponseWriter, r *http.Request) {
@@ -143,8 +222,15 @@ func (s *StudyApp) adminTestResult(w http.ResponseWriter, r *http.Request) {
 	data.TestStarted = true
 	data.TestFinished = attempt.Status == "submitted" || attempt.Status == "expired"
 	if data.TestFinished {
-		data.TestQuestions = makeTestQuestionViews(test.Questions, attempt.Answers, true)
-		data.TestBreakdown = testBreakdown(test.Questions, attempt.Answers)
+		resultQuestions := test.Questions
+		if len(attempt.ResultQuestions) > 0 {
+			resultQuestions = attempt.ResultQuestions
+		}
+		data.TestQuestions = makeTestQuestionViews(resultQuestions, attempt.Answers, true)
+		data.TestBreakdown = attempt.ResultBreakdown
+		if len(data.TestBreakdown) == 0 {
+			data.TestBreakdown = testBreakdown(resultQuestions, attempt.Answers)
+		}
 	}
 	renderStudy(w, "study_test.html", data)
 }
@@ -190,10 +276,17 @@ func (s *StudyApp) studyTest(w http.ResponseWriter, r *http.Request) {
 	data.TestStarted = attempt.ID != ""
 	data.TestFinished = attempt.Status == "submitted" || attempt.Status == "expired"
 	if data.TestStarted {
-		data.TestQuestions = makeTestQuestionViews(test.Questions, attempt.Answers, data.TestFinished)
-	}
-	if data.TestFinished {
-		data.TestBreakdown = testBreakdown(test.Questions, attempt.Answers)
+		resultQuestions := test.Questions
+		if data.TestFinished && len(attempt.ResultQuestions) > 0 {
+			resultQuestions = attempt.ResultQuestions
+		}
+		data.TestQuestions = makeTestQuestionViews(resultQuestions, attempt.Answers, data.TestFinished)
+		if data.TestFinished {
+			data.TestBreakdown = attempt.ResultBreakdown
+			if len(data.TestBreakdown) == 0 {
+				data.TestBreakdown = testBreakdown(resultQuestions, attempt.Answers)
+			}
+		}
 	}
 	if !data.TestStarted && assignment.HasDeadline && !time.Now().In(s.loc).Before(assignment.DeadlineAt) {
 		data.Error = "Дедлайн задания уже истёк."
