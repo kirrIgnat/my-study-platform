@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061019">
+  <title>Study Builder — ваш персональный учебный сайт</title>
+  <meta name="description" content="Соберите макет сайта для индивидуального преподавания и отправьте заявку на разработку.">
+  <link rel="stylesheet" href="assets/style.css?v=20261108-custom2">
+  <script defer src="assets/app.js?v=20261108-custom2"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail" aria-label="Навигация конструктора">
+      <a class="brand" href="/profile">KIRILL<span class="brand-thin">.DEV</span></a>
+      <div class="rail-heading">ПЛАН ВАШЕГО САЙТА</div>
+      <nav class="steps" id="steps" aria-label="Этапы оформления заявки">
+        <button class="step active" data-jump="0"><span class="step-number">01</span><span>Шаблон</span></button>
+        <button class="step" data-jump="1"><span class="step-number">02</span><span>Дизайн</span></button>
+        <button class="step" data-jump="2"><span class="step-number">03</span><span>Возможности</span></button>
+        <button class="step" data-jump="3"><span class="step-number">04</span><span>Описание</span></button>
+        <button class="step" data-jump="4"><span class="step-number">05</span><span>Заявка</span></button>
+      </nav>
+
+    </aside>
+    <main class="content">
+      <header class="topbar"><div class="topbar-overline">КОНСТРУКТОР УЧЕБНОЙ ПЛАТФОРМЫ</div><div class="topbar-counter">ШАГ <span id="step-current">01</span> / 05</div></header>
+      <div class="progress-track"><div id="progress-fill"></div></div>
+      <div class="main-grid">
+        <section class="editor" aria-label="Настройки проекта">
+          <div class="panel-head"><p class="eyebrow" id="section-label">01 / ОСНОВА</p><h1 id="section-title">Начнем с идеи.</h1><p class="section-subtitle" id="section-subtitle">Выберите внешний вид будущей платформы.</p></div>
+          <div id="step-content" class="step-content"></div>
+          <div class="editor-footer"><button class="btn btn-ghost" id="back-btn" type="button">Назад</button><button class="btn btn-primary" id="next-btn" type="button">Продолжить <span aria-hidden="true">→</span></button></div>
+          <div id="submit-status" class="submit-status" role="status" aria-live="polite"></div>
+        </section>
+        <aside class="preview-section" aria-label="Предпросмотр">
+          <div class="preview-header"><div><span class="preview-dot"></span><b>Предпросмотр</b></div><div class="view-switch" aria-label="Режим просмотра"><button id="view-desktop" class="selected" type="button" title="Компьютер">▣</button><button id="view-mobile" type="button" title="Телефон">▯</button></div></div>
+          <div class="preview-stage" id="preview-stage"><div id="website-preview" class="website-preview"></div></div>
+          <div class="preview-footer"><span>ПРЕСЕТ <strong id="preview-preset">STUDY MINIMAL</strong></span><span>ТЕМА <strong id="preview-theme">СВЕТЛАЯ</strong></span></div>
+
+        </aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

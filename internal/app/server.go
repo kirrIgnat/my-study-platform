@@ -95,6 +95,7 @@ func Run() {
 	auth.CleanupSessions()
 	study := NewStudyApp(db, auth)
 	study.RegisterRoutes(mux)
+	study.registerSiteBuilder(mux)
 	RegisterTeacherSlotRoutes(mux, study, db)
 
 	staticDir := projectPath("web/static", "../../web/static")

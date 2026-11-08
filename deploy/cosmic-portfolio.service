@@ -26,6 +26,9 @@ RestrictSUIDSGID=true
 LockPersonality=true
 MemoryDenyWriteExecute=true
 ReadOnlyPaths=/opt/cosmic-portfolio
+# Needed only when Jibri recording integration is enabled. The leading '-' makes
+# the unit start even before this optional path has been created.
+ReadWritePaths=-/var/lib/my-study/jitsi/storage/jibri/recordings
 UMask=0077
 
 [Install]

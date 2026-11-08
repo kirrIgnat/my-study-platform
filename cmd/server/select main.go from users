@@ -1,0 +1,42 @@
+                   Table "public.users"
+    Column     |  Type  | Collation | Nullable | Default  
+---------------+--------+-----------+----------+----------
+ id            | text   |           | not null | 
+ email         | text   |           | not null | 
+ password_hash | text   |           | not null | 
+ name          | text   |           | not null | 
+ telegram      | text   |           | not null | ''::text
+ role          | text   |           | not null | 
+ created_at    | bigint |           | not null | 
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+    "users_email_lower_unique" UNIQUE, btree (lower(email))
+Check constraints:
+    "users_role_check" CHECK (role = ANY (ARRAY['student'::text, 'admin'::text]))
+Referenced by:
+    TABLE "booking_suppressions" CONSTRAINT "booking_suppressions_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "bookings" CONSTRAINT "bookings_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "enrollments" CONSTRAINT "enrollments_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "homework_assignments" CONSTRAINT "homework_assignments_assigned_by_fkey" FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "homework_assignments" CONSTRAINT "homework_assignments_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "homework_submissions" CONSTRAINT "homework_submissions_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "homework_tasks" CONSTRAINT "homework_tasks_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "lesson_conferences" CONSTRAINT "lesson_conferences_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "lesson_payment_exclusions" CONSTRAINT "lesson_payment_exclusions_excluded_by_fkey" FOREIGN KEY (excluded_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "lesson_payment_qr" CONSTRAINT "lesson_payment_qr_updated_by_fkey" FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "lesson_payments" CONSTRAINT "lesson_payments_reviewed_by_fkey" FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "lesson_payments" CONSTRAINT "lesson_payments_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "notifications" CONSTRAINT "notifications_recipient_user_id_fkey" FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "password_reset_events" CONSTRAINT "password_reset_events_admin_user_id_fkey" FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "password_reset_events" CONSTRAINT "password_reset_events_target_user_id_fkey" FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "payment_settings" CONSTRAINT "payment_settings_updated_by_fkey" FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "reschedule_requests" CONSTRAINT "reschedule_requests_resolved_by_fkey" FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "reschedule_requests" CONSTRAINT "reschedule_requests_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "sessions" CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "student_profiles" CONSTRAINT "student_profiles_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "test_assignments" CONSTRAINT "test_assignments_assigned_by_fkey" FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE RESTRICT
+    TABLE "test_assignments" CONSTRAINT "test_assignments_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "test_attempts" CONSTRAINT "test_attempts_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    TABLE "test_templates" CONSTRAINT "test_templates_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    TABLE "tutoring_schedules" CONSTRAINT "tutoring_schedules_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+
